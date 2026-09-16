@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/black"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <!-- Title Header -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Gboard RGB Studio"
+            android:textColor="@color/accent_cyan"
+            android:textSize="26sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:text="7 Fluid &amp; Reactive Visual Effects (Real-Time Sync)"
+            android:textColor="#888888"
+            android:textSize="13sp" />
+
+        <!-- Live Interactive Preview Canvas -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="Live Interactive Preview (Tap inside to test):"
+            android:textColor="@color/accent_pink"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <FrameLayout
+            android:id="@+id/previewContainer"
+            android:layout_width="match_parent"
+            android:layout_height="180dp"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/preview_box_bg">
+
+            <TextView
+                android:id="@+id/tvPreviewHint"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:text="Tap anywhere in this box to trigger effect"
+                android:textColor="#55FFFFFF"
+                android:textSize="13sp" />
+        </FrameLayout>
+
+        <!-- Test Keyboard Input Box -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="Test Typing on Gboard Here:"
+            android:textColor="@color/white"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <EditText
+            android:id="@+id/etTestInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:background="@drawable/input_box_bg"
+            android:hint="Tap here to open Gboard..."
+            android:padding="12dp"
+            android:textColor="@color/white"
+            android:textColorHint="#555555"
+            android:textSize="14sp" />
+
+        <!-- Idle Ambient Rain Switch -->
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/switchAmbientRain"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            android:text="🌧️ Idle Ambient Raindrops (Every 2s on keyboard)"
+            android:textColor="@color/white"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <!-- Effect Presets Grid/Chips -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="Select Visual Effect Preset:"
+            android:textColor="@color/accent_cyan"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/chipGroupEffects"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            app:selectionRequired="true"
+            app:singleSelection="true">
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipWater"
+                style="@style/Widget.Material3.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="💧 Fluid Water"
+                android:textColor="@color/white"
+                app:chipBackgroundColor="@color/card_dark" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipLightning"
+                style="@style/Widget.Material3.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="⚡ Neon Lightning"
+                android:textColor="@color/white"
+                app:chipBackgroundColor="@color/card_dark" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipSupernova"
+                style="@style/Widget.Material3.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🌌 Cosmic Supernova"
+                android:textColor="@color/white"
+                app:chipBackgroundColor="@color/card_dark" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipMagma"
+                style="@style/Widget.Material3.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🔥 Molten Magma"
+                android:textColor="@color/white"
+                app:chipBackgroundColor="@color/card_dark" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipSonic"
+                style="@style/Widget.Material3.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🔊 Sonic Wave"
+                android:textColor="@color/white"
+                app:chipBackgroundColor="@color/card_dark" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipBlackHole"
+                style="@style/Widget.Material3.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🌀 Black Hole"
+                android:textColor="@color/white"
+                app:chipBackgroundColor="@color/card_dark" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipAmbientRain"
+                style="@style/Widget.Material3.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🌧️ Ambient Rain"
+                android:textColor="@color/white"
+                app:chipBackgroundColor="@color/card_dark" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipChroma"
+                style="@style/Widget.Material3.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🌈 Razer Chroma"
+                android:textColor="@color/white"
+                app:chipBackgroundColor="@color/card_dark" />
+        </com.google.android.material.chip.ChipGroup>
+
+        <!-- Sliders -->
+        <TextView
+            android:id="@+id/tvSpeedLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="Animation Speed: 1.0x (Normal)"
+            android:textColor="@color/white"
+            android:textSize="13sp" />
+
+        <com.google.android.material.slider.Slider
+            android:id="@+id/sliderSpeed"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:value="1.0"
+            android:valueFrom="0.3"
+            android:valueTo="2.0"
+            android:stepSize="0.1" />
+
+        <TextView
+            android:id="@+id/tvSizeLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:text="Wave Size / Reach: 1.0x (Full)"
+            android:textColor="@color/white"
+            android:textSize="13sp" />
+
+        <com.google.android.material.slider.Slider
+            android:id="@+id/sliderSize"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:value="1.0"
+            android:valueFrom="0.3"
+            android:valueTo="1.5"
+            android:stepSize="0.1" />
+
+        <!-- Info Tip -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="24dp"
+            android:background="#151515"
+            android:padding="12dp"
+            android:text="💡 Tip: Settings sync to Gboard in REAL TIME! Tapping any preset or switch updates your keyboard instantly without restarting Gboard."
+            android:textColor="#AAAAAA"
+            android:textSize="12sp" />
+
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>

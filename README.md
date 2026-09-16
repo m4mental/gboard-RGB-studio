@@ -1,1 +1,92 @@
-# gboard-RGB-studio
+# ⌨️ Gboard RGB Studio
+
+[![Android](https://img.shields.io/badge/Platform-Android%2010%2B-green.svg)](https://android.com)
+[![LSPosed](https://img.shields.io/badge/Framework-LSPosed%20%2F%20Zygisk-purple.svg)](https://github.com/LSPosed/LSPosed)
+[![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue.svg)](https://kotlinlang.org)
+[![Theme](https://img.shields.io/badge/Designed%20For-AMOLED%20Pitch%20Black%20%26%20Rboard%203D-black.svg)]()
+
+**Gboard RGB Studio** is an advanced LSPosed module and real-time companion control app that injects dynamic, reactive visual effects and fluid particle physics directly into **Google Keyboard (Gboard)** on rooted Android devices.
+
+All effects render inside a custom hardware-accelerated canvas overlay strictly confined to the keyboard frame — supporting floating keyboard, one-handed mode, and custom heights without altering or displacing the keyboard layout.
+
+---
+
+## ✨ Key Features
+
+- 💧 **7 Procedural Visual Effect Presets:**
+  1. **💧 Fluid Water Droplet:** Realistic liquid splash with expanding caustic refraction ripples.
+  2. **⚡ Cyberpunk Neon Lightning:** High-voltage electric crackle arcs branching outwards with rapid flicker fade.
+  3. **🌌 Cosmic Supernova:** Central starlight burst scattering 18 drifting nebula spark particles.
+  4. **🔥 Molten Magma & Embers:** Blazing lava core explosion with thermal updraft ember particles.
+  5. **🔊 Sonic Soundwave:** Undulating sinusoidal acoustic sound waves radiating across keycaps.
+  6. **🌀 Quantum Black Hole:** Inward gravitational contraction ring followed by a prismatic event-horizon burst.
+  7. **🌧️ Ambient Raindrops:** Gentle, random raindrops falling across idle keyboard corners every 2s, plus heavy splashes on keypress.
+  *(Bonus: 🌈 **Razer Chroma** classic mechanical rainbow wave).*
+
+- ⚡ **Zero-Restart Real-Time Synchronization:**
+  - Switch presets or adjust sliders in the companion app; updates broadcast instantly to Gboard in under 5ms without killing or restarting Gboard.
+
+- 🌊 **Multi-Touch Crossover Physics:**
+  - Type at full speed with multiple fingers simultaneously — waves do not cancel each other; they collide, overlap, and blend seamlessly in the hardware framebuffer.
+
+- 🔁 **Continuous Long-Press Wave Pulse:**
+  - Hold Backspace or any key to trigger rhythmic, continuous wave bursts (280ms threshold, 115ms interval) for satisfying key repeat feedback.
+
+- 🎛️ **Granular Precision Sliders:**
+  - **Animation Speed:** Scalable from `0.3x` (*Ultra Slow-Mo Liquid Glide*) up to `2.0x` (*Snappy Fast*).
+  - **Wave Size / Reach:** Scalable from `0.3x` (*Micro Keycap Glow / Minimalist*) up to `1.5x` (*Full Keyboard Reach*).
+
+- 🔒 **Dynamic Boundary Clipping:**
+  - Strictly clipped to Gboard's visible boundaries (`SoftKeyboardView` / `KeyboardHolder`), preventing visual spillover into chat history or status bars.
+
+---
+
+## 📱 Companion Control App
+
+The module includes a native Material 3 AMOLED Dark UI featuring:
+- **Interactive Live Preview Canvas:** Tap on the preview box to test any preset, speed, or size immediately.
+- **Single-Tap Preset Selectors:** Filter chips for all 7 presets.
+- **Ambient Raindrop Toggle:** Enable or disable idle falling rain with one tap.
+- **Embedded Typing Sandbox:** Built-in test field to test Gboard reactions directly inside the app.
+
+---
+
+## 🛠️ Architecture & Technology Stack
+
+| Component | Implementation |
+| :--- | :--- |
+| **Hook Engine** | LSPosed / Xposed API (`IXposedHookLoadPackage`) targeting `com.google.android.inputmethod.latin` |
+| **Render Surface** | Hardware-accelerated custom `View` (`RGBRippleOverlayView`) mounted directly on Gboard's root `InputView` |
+| **Touch Interception** | Non-intrusive hook on `ViewGroup.dispatchTouchEvent` with screen-to-keyboard coordinate translation |
+| **Inter-Process Comm** | Dual-channel: Android System `BroadcastReceiver` + JSON persistence (`/data/local/tmp/gboard_rgb_config.json`) |
+| **Design Language** | Material 3 Dark AMOLED (`#000000` pitch black background, `#00FFF5` electric cyan accents) |
+
+---
+
+## 🚀 Installation & Setup
+
+### Prerequisites
+1. Rooted Android device running **Android 10+** (KernelSU, Magisk, or APatch).
+2. **LSPosed (Zygisk)** active and operational.
+3. **Google Keyboard (Gboard)** installed and selected as the default IME.
+
+### Steps
+1. Clone or download the repository:
+   ```bash
+   git clone https://github.com/m4mental/gboard-RGB-studio.git
+   ```
+2. Build and install the APK via Android Studio or Gradle:
+   ```bash
+   ./gradlew assembleDebug
+   adb install -r app/build/outputs/apk/debug/app-debug.apk
+   ```
+3. Open **LSPosed Manager**:
+   - Enable the **Gboard RGB Studio** module.
+   - Ensure the scope includes **Gboard (`com.google.android.inputmethod.latin`)**.
+4. Force stop Gboard once or launch the **Gboard RGB Studio** companion app.
+5. Tap the test field, select your favorite effect preset, and enjoy next-generation keyboard visuals!
+
+---
+
+## 📄 License
+Open source under the [Apache 2.0 License](LICENSE).

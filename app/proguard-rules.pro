@@ -1,0 +1,2 @@
+-keep class com.custom.gboardrgb.MainHook { *; }
+-keep class com.custom.gboardrgb.RGBRippleOverlayView { *; }

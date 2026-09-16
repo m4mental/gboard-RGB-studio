@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="surface_dark">#FF121212</color>
+    <color name="card_dark">#FF1E1E1E</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="accent_cyan">#FF00F5FF</color>
+    <color name="accent_pink">#FFFF007F</color>
+    <color name="accent_purple">#FF8A2BE2</color>
+</resources>
