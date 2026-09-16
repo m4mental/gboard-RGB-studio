@@ -18,6 +18,7 @@ object ConfigManager {
     const val EXTRA_TURBO_DYNAMICS = "extra_turbo_dynamics"
     const val EXTRA_GLIDE_TRAIL = "extra_glide_trail"
     const val EXTRA_HAPTIC = "extra_haptic"
+    const val EXTRA_UNDERGLOW = "extra_underglow"
 
     private const val PREFS_NAME = "gboard_rgb_prefs"
     private const val KEY_EFFECT_ID = "key_effect_id"
@@ -30,6 +31,7 @@ object ConfigManager {
     private const val KEY_TURBO_DYNAMICS = "key_turbo_dynamics"
     private const val KEY_GLIDE_TRAIL = "key_glide_trail"
     private const val KEY_HAPTIC = "key_haptic"
+    private const val KEY_UNDERGLOW = "key_underglow"
 
     private const val FALLBACK_FILE_PATH = "/data/local/tmp/gboard_rgb_config.json"
 
@@ -43,7 +45,8 @@ object ConfigManager {
         var colorSecondary: String = "#FF00AA",
         var isTurboDynamicsEnabled: Boolean = true,
         var isGlideTrailEnabled: Boolean = true,
-        var isHapticEnabled: Boolean = true
+        var isHapticEnabled: Boolean = true,
+        var isUnderglowEnabled: Boolean = true
     )
 
     fun saveSettings(context: Context, settings: Settings) {
@@ -59,6 +62,7 @@ object ConfigManager {
             .putBoolean(KEY_TURBO_DYNAMICS, settings.isTurboDynamicsEnabled)
             .putBoolean(KEY_GLIDE_TRAIL, settings.isGlideTrailEnabled)
             .putBoolean(KEY_HAPTIC, settings.isHapticEnabled)
+            .putBoolean(KEY_UNDERGLOW, settings.isUnderglowEnabled)
             .apply()
 
         try {
@@ -73,6 +77,7 @@ object ConfigManager {
                 put("turbo_dynamics", settings.isTurboDynamicsEnabled)
                 put("glide_trail", settings.isGlideTrailEnabled)
                 put("haptic", settings.isHapticEnabled)
+                put("underglow", settings.isUnderglowEnabled)
             }
             val file = File(FALLBACK_FILE_PATH)
             file.writeText(json.toString())
@@ -93,6 +98,7 @@ object ConfigManager {
             putExtra(EXTRA_TURBO_DYNAMICS, settings.isTurboDynamicsEnabled)
             putExtra(EXTRA_GLIDE_TRAIL, settings.isGlideTrailEnabled)
             putExtra(EXTRA_HAPTIC, settings.isHapticEnabled)
+            putExtra(EXTRA_UNDERGLOW, settings.isUnderglowEnabled)
             `package` = "com.google.android.inputmethod.latin"
         }
         context.sendBroadcast(intent)
@@ -112,9 +118,10 @@ object ConfigManager {
                 val turbo = prefs.getBoolean(KEY_TURBO_DYNAMICS, true)
                 val glide = prefs.getBoolean(KEY_GLIDE_TRAIL, true)
                 val haptic = prefs.getBoolean(KEY_HAPTIC, true)
+                val underglow = prefs.getBoolean(KEY_UNDERGLOW, true)
                 return Settings(
                     EffectType.fromId(id), speed, size, ambient,
-                    useCustom, colPrim, colSec, turbo, glide, haptic
+                    useCustom, colPrim, colSec, turbo, glide, haptic, underglow
                 )
             } catch (e: Exception) {
                 // Fallback
@@ -136,9 +143,10 @@ object ConfigManager {
                 val turbo = json.optBoolean("turbo_dynamics", true)
                 val glide = json.optBoolean("glide_trail", true)
                 val haptic = json.optBoolean("haptic", true)
+                val underglow = json.optBoolean("underglow", true)
                 return Settings(
                     EffectType.fromId(id), speed, size, ambient,
-                    useCustom, colPrim, colSec, turbo, glide, haptic
+                    useCustom, colPrim, colSec, turbo, glide, haptic, underglow
                 )
             }
         } catch (e: Exception) {

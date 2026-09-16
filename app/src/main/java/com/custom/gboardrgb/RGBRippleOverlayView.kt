@@ -5,7 +5,10 @@ import android.content.Context
 import android.graphics.*
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
+import android.view.MotionEvent
 import android.view.View
+import android.view.ViewGroup
 import android.view.animation.DecelerateInterpolator
 import android.view.animation.Interpolator
 import java.lang.ref.WeakReference
@@ -37,6 +40,19 @@ class RGBRippleOverlayView(context: Context) : View(context) {
     private var glideAlpha = 1.0f
     private var glideFadeAnimator: ValueAnimator? = null
 
+    // 4. Perimeter Underglow (Mechanical Keyboard Edge Lighting)
+    var isUnderglowEnabled: Boolean = true
+        set(value) {
+            field = value
+            if (value) {
+                startUnderglowAnimation()
+            }
+            invalidate()
+        }
+    private var underglowPulseIntensity: Float = 0.0f
+    private var lastUnderglowFrameTime: Long = 0L
+    private val density = context.resources.displayMetrics.density
+
     var isAmbientRainEnabled: Boolean = true
         set(value) {
             field = value
@@ -54,8 +70,46 @@ class RGBRippleOverlayView(context: Context) : View(context) {
         translationZ = 3000f
     }
 
+    override fun dispatchTouchEvent(event: MotionEvent): Boolean = false
+    override fun onTouchEvent(event: MotionEvent): Boolean = false
+
     fun setKeyboardTarget(view: View) {
         keyboardTargetRef = WeakReference(view)
+        postInvalidate()
+    }
+
+    fun getActiveKeyboardTarget(): View? {
+        val current = keyboardTargetRef?.get()
+        if (current != null && current.isShown && current.width > 0 && current.height > 0) {
+            return current
+        }
+        val root = (rootView as? ViewGroup) ?: (parent as? ViewGroup)
+        val discovered = root?.let { findVisibleKeyboardHolder(it) }
+        if (discovered != null) {
+            keyboardTargetRef = WeakReference(discovered)
+            return discovered
+        }
+        return null
+    }
+
+    private fun findVisibleKeyboardHolder(view: View): View? {
+        if (view !is ViewGroup) return null
+        if (!view.isShown || view.visibility != View.VISIBLE || view.width <= 0 || view.height <= 0) {
+            return null
+        }
+        val name = view.javaClass.simpleName
+        if (name.contains("KeyboardHolder")) {
+            return view
+        }
+        for (i in 0 until view.childCount) {
+            val child = view.getChildAt(i)
+            val found = findVisibleKeyboardHolder(child)
+            if (found != null) return found
+        }
+        if (name.contains("SoftKeyboardView")) {
+            return view
+        }
+        return null
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
@@ -132,6 +186,20 @@ class RGBRippleOverlayView(context: Context) : View(context) {
         strokeJoin = Paint.Join.ROUND
     }
 
+    private val underglowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        strokeCap = Paint.Cap.ROUND
+        strokeJoin = Paint.Join.ROUND
+    }
+    private val underglowGlowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        strokeCap = Paint.Cap.ROUND
+        strokeJoin = Paint.Join.ROUND
+    }
+    private val underglowFillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.FILL
+    }
+
     private data class Particle(
         var x: Float, var y: Float,
         var vx: Float, var vy: Float,
@@ -163,6 +231,10 @@ class RGBRippleOverlayView(context: Context) : View(context) {
         glidePoints.add(GlidePoint(x, y, now))
         while (glidePoints.size > 26) {
             glidePoints.removeAt(0)
+        }
+        if (isUnderglowEnabled && underglowPulseIntensity < 0.6f) {
+            underglowPulseIntensity = 0.6f
+            startUnderglowAnimation()
         }
         invalidate()
     }
@@ -228,6 +300,9 @@ class RGBRippleOverlayView(context: Context) : View(context) {
             mainHandler.removeCallbacks(ambientRainRunnable)
             mainHandler.postDelayed(ambientRainRunnable, 1000)
         }
+        if (isUnderglowEnabled) {
+            startUnderglowAnimation()
+        }
     }
 
     override fun onDetachedFromWindow() {
@@ -269,6 +344,10 @@ class RGBRippleOverlayView(context: Context) : View(context) {
         val turbo = if (isTurboDynamicsEnabled && !isMiniDrop) turboFactor else 1.0f
         val baseRadius = max(kbW, kbH) * (if (isMiniDrop) 0.38f else 0.95f) * sizeMultiplier * (1.0f + (turbo - 1.0f) * 0.22f)
 
+        if (!isMiniDrop) {
+            pulseUnderglow()
+        }
+
         val particles = when (effectType) {
             EffectType.COSMIC_SUPERNOVA -> generateSupernovaParticles(touchX, touchY, turbo)
             EffectType.MOLTEN_MAGMA -> generateMagmaParticles(touchX, touchY, turbo)
@@ -293,17 +372,31 @@ class RGBRippleOverlayView(context: Context) : View(context) {
         activeEffects.add(effect)
 
         val baseDuration = when (effectType) {
-            EffectType.NEON_LIGHTNING -> 300L
-            EffectType.SONIC_WAVE -> 520L
-            EffectType.RAZER_CHROMA -> 420L
-            EffectType.MOLTEN_MAGMA -> 600L
-            EffectType.BLACK_HOLE -> 680L
-            EffectType.COSMIC_SUPERNOVA -> 700L
-            EffectType.WATER_DROP, EffectType.AMBIENT_RAIN -> if (isMiniDrop) 650L else 720L
+            EffectType.NEON_LIGHTNING -> 420L
+            EffectType.SONIC_WAVE -> 600L
+            EffectType.RAZER_CHROMA -> 520L
+            EffectType.MOLTEN_MAGMA -> 700L
+            EffectType.BLACK_HOLE -> 750L
+            EffectType.COSMIC_SUPERNOVA -> 780L
+            EffectType.WATER_DROP, EffectType.AMBIENT_RAIN -> if (isMiniDrop) 680L else 780L
         }
-        val finalDuration = (baseDuration / speedMultiplier.coerceIn(0.2f, 3.0f)).toLong()
 
-        val interpolator = when (effectType) {
+        val finalDuration = if (speedMultiplier < 1.0f) {
+            // Power curve for true slow-motion distinction:
+            // 1.0x -> 780ms
+            // 0.7x -> 1380ms
+            // 0.5x -> 2370ms
+            // 0.3x -> 5380ms (dramatic 5.4s slow-mo!)
+            (baseDuration / speedMultiplier.toDouble().pow(1.6)).toLong()
+        } else {
+            (baseDuration / speedMultiplier.coerceIn(0.2f, 3.0f)).toLong()
+        }
+
+        val interpolator = if (speedMultiplier < 0.8f) {
+            // Progressive gentle ease-out for slow-mo so wave travels steadily across the keyboard
+            val power = 1.15f + 1.25f * (speedMultiplier / 0.8f).coerceIn(0f, 1f)
+            Interpolator { t -> (1.0f - (1.0f - t).pow(power)) }
+        } else when (effectType) {
             EffectType.WATER_DROP, EffectType.AMBIENT_RAIN -> fluidInterpolator
             else -> decelerateInterpolator
         }
@@ -314,11 +407,12 @@ class RGBRippleOverlayView(context: Context) : View(context) {
                 this.interpolator = interpolator
                 addUpdateListener { anim ->
                     effect.progress = anim.animatedValue as Float
+                    val drag = 1.0f - (0.055f * speedMultiplier.coerceIn(0.2f, 1.2f))
                     for (p in effect.particles) {
                         p.x += p.vx
                         p.y += p.vy
-                        p.vx *= 0.94f
-                        p.vy *= 0.94f
+                        p.vx *= drag
+                        p.vy *= drag
                     }
                     invalidate()
                 }
@@ -339,9 +433,10 @@ class RGBRippleOverlayView(context: Context) : View(context) {
             )
         }
         val count = (18 * turbo).toInt().coerceIn(12, 36)
+        val speedScale = 0.45f + 0.55f * speedMultiplier.coerceIn(0.2f, 1.2f)
         for (i in 0 until count) {
             val angle = (i.toFloat() / count) * 2 * Math.PI.toFloat() + (Random.nextFloat() - 0.5f) * 0.4f
-            val speed = (Random.nextFloat() * 12f + 4f) * (1.0f + (turbo - 1.0f) * 0.35f)
+            val speed = (Random.nextFloat() * 12f + 4f) * (1.0f + (turbo - 1.0f) * 0.35f) * speedScale
             list.add(
                 Particle(
                     x = originX, y = originY,
@@ -366,9 +461,10 @@ class RGBRippleOverlayView(context: Context) : View(context) {
             )
         }
         val count = (12 * turbo).toInt().coerceIn(8, 26)
+        val speedScale = 0.45f + 0.55f * speedMultiplier.coerceIn(0.2f, 1.2f)
         for (i in 0 until count) {
-            val vx = (Random.nextFloat() - 0.5f) * 14f * turbo
-            val vy = -(Random.nextFloat() * 18f + 6f) * turbo
+            val vx = (Random.nextFloat() - 0.5f) * 14f * turbo * speedScale
+            val vy = -(Random.nextFloat() * 18f + 6f) * turbo * speedScale
             list.add(
                 Particle(
                     x = originX, y = originY,
@@ -414,24 +510,41 @@ class RGBRippleOverlayView(context: Context) : View(context) {
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-        if (activeEffects.isEmpty() && glidePoints.isEmpty()) return
+        if (activeEffects.isEmpty() && glidePoints.isEmpty() && !isUnderglowEnabled) return
 
-        val kb = keyboardTargetRef?.get()
+        val kb = getActiveKeyboardTarget()
         canvas.save()
+
+        val left: Float
+        val top: Float
+        val right: Float
+        val bottom: Float
 
         if (kb != null && kb.isShown && kb.width > 0 && kb.height > 0) {
             val kbLoc = IntArray(2)
             kb.getLocationOnScreen(kbLoc)
             val myLoc = IntArray(2)
             getLocationOnScreen(myLoc)
-            val left = (kbLoc[0] - myLoc[0]).toFloat()
-            val top = (kbLoc[1] - myLoc[1]).toFloat()
-            canvas.clipRect(left, top, left + kb.width, top + kb.height)
+            left = (kbLoc[0] - myLoc[0]).toFloat()
+            top = (kbLoc[1] - myLoc[1]).toFloat()
+            right = left + kb.width
+            bottom = top + kb.height
         } else {
-            canvas.clipRect(0f, 0f, width.toFloat(), height.toFloat())
+            left = 0f
+            top = 0f
+            right = width.toFloat()
+            bottom = height.toFloat()
         }
 
-        // Render Swipe/Glide Neon Laser Trail
+        // 1. Render Perimeter Underglow (Mechanical Edge Lighting) around keyboard boundaries
+        if (isUnderglowEnabled && right > left && bottom > top) {
+            drawPerimeterUnderglow(canvas, left, top, right, bottom)
+        }
+
+        // 2. Clip key ripples and laser trails strictly inside keyboard boundaries
+        canvas.clipRect(left, top, right, bottom)
+
+        // 3. Render Swipe/Glide Neon Laser Trail
         if (isGlideTrailEnabled && glidePoints.size >= 2) {
             drawGlideTrail(canvas)
         }
@@ -455,12 +568,25 @@ class RGBRippleOverlayView(context: Context) : View(context) {
         }
 
         canvas.restore()
+
+        if (isUnderglowEnabled && isShown) {
+            postInvalidateOnAnimation()
+        }
     }
 
     // --- 1. Fluid Water Droplet ---
+    private fun getEffectFade(progress: Float, baseExponent: Float = 1.3f): Float {
+        val exp = if (speedMultiplier < 0.8f) {
+            baseExponent * (0.6f + 0.4f * (speedMultiplier / 0.8f))
+        } else {
+            baseExponent
+        }
+        return (1.0f - progress).pow(exp)
+    }
+
     private fun drawFluidWater(canvas: Canvas, fx: ActiveEffect) {
         val p = fx.progress
-        val energyFade = (1.0f - p).pow(1.3f)
+        val energyFade = getEffectFade(p, 1.3f)
         val baseR = p * fx.maxRadius
 
         canvas.save()
@@ -549,7 +675,7 @@ class RGBRippleOverlayView(context: Context) : View(context) {
     // --- 3. Cosmic Supernova ---
     private fun drawCosmicSupernova(canvas: Canvas, fx: ActiveEffect) {
         val p = fx.progress
-        val fade = (1.0f - p).pow(1.5f)
+        val fade = getEffectFade(p, 1.5f)
         val r = p * fx.maxRadius
 
         if (p < 0.22f) {
@@ -587,7 +713,7 @@ class RGBRippleOverlayView(context: Context) : View(context) {
     // --- 4. Molten Magma ---
     private fun drawMoltenMagma(canvas: Canvas, fx: ActiveEffect) {
         val p = fx.progress
-        val fade = (1.0f - p).pow(1.4f)
+        val fade = getEffectFade(p, 1.4f)
         val r = p * fx.maxRadius
 
         canvas.save()
@@ -621,7 +747,7 @@ class RGBRippleOverlayView(context: Context) : View(context) {
     // --- 5. Sonic Soundwave ---
     private fun drawSonicWave(canvas: Canvas, fx: ActiveEffect) {
         val p = fx.progress
-        val fade = (1.0f - p).pow(1.2f)
+        val fade = getEffectFade(p, 1.2f)
         val r = p * fx.maxRadius
 
         val palette = if (useCustomColors) {
@@ -666,7 +792,7 @@ class RGBRippleOverlayView(context: Context) : View(context) {
             canvas.drawCircle(fx.originX, fx.originY, contractR, strokePaint)
         } else {
             val shockP = (p - 0.35f) / 0.65f
-            val fade = (1.0f - shockP).pow(1.3f)
+            val fade = getEffectFade(shockP, 1.3f)
             val shockR = shockP * fx.maxRadius
 
             canvas.save()
@@ -684,7 +810,7 @@ class RGBRippleOverlayView(context: Context) : View(context) {
     // --- 7. Razer Chroma RGB Wave ---
     private fun drawRazerChroma(canvas: Canvas, fx: ActiveEffect) {
         val p = fx.progress
-        val fade = (1.0f - p).pow(1.4f)
+        val fade = getEffectFade(p, 1.4f)
         val r = p * fx.maxRadius
 
         canvas.save()
@@ -708,5 +834,112 @@ class RGBRippleOverlayView(context: Context) : View(context) {
         }
 
         canvas.restore()
+    }
+
+    fun pulseUnderglow() {
+        if (!isUnderglowEnabled) return
+        underglowPulseIntensity = 1.0f
+        startUnderglowAnimation()
+    }
+
+    private fun startUnderglowAnimation() {
+        if (!isUnderglowEnabled) return
+        lastUnderglowFrameTime = SystemClock.elapsedRealtime()
+        postInvalidateOnAnimation()
+    }
+
+    private fun drawPerimeterUnderglow(canvas: Canvas, left: Float, top: Float, right: Float, bottom: Float) {
+        val now = SystemClock.elapsedRealtime()
+        if (lastUnderglowFrameTime == 0L) lastUnderglowFrameTime = now
+        val dt = (now - lastUnderglowFrameTime).coerceIn(0L, 50L)
+        lastUnderglowFrameTime = now
+
+        // Pulse decay: 1.0 down to 0.0 over ~380ms
+        if (underglowPulseIntensity > 0f) {
+            underglowPulseIntensity = (underglowPulseIntensity - (dt / 380f)).coerceAtLeast(0f)
+        }
+
+        // Ambient breathing calculation (smooth sine wave over ~2.4s period)
+        val breath = (sin(now / 380.0) * 0.5 + 0.5).toFloat()
+        val ambientAlpha = 0.32f + breath * 0.28f
+        val turboBoost = if (isTurboDynamicsEnabled) (1.0f + (turboFactor - 1.0f) * 0.45f) else 1.0f
+        val brightness = ((ambientAlpha + underglowPulseIntensity * 0.55f) * turboBoost).coerceIn(0.15f, 1.0f)
+
+        // Palette resolution
+        val primaryCol = if (useCustomColors) customColorPrimary else when (currentEffect) {
+            EffectType.WATER_DROP, EffectType.AMBIENT_RAIN -> Color.parseColor("#00FFF5")
+            EffectType.NEON_LIGHTNING -> Color.parseColor("#00F5FF")
+            EffectType.COSMIC_SUPERNOVA -> Color.parseColor("#FF00FF")
+            EffectType.MOLTEN_MAGMA -> Color.parseColor("#FF2200")
+            EffectType.SONIC_WAVE -> Color.parseColor("#00FF66")
+            EffectType.BLACK_HOLE -> Color.parseColor("#7A00FF")
+            EffectType.RAZER_CHROMA -> Color.parseColor("#00FFF5")
+        }
+        val secondaryCol = if (useCustomColors) customColorSecondary else when (currentEffect) {
+            EffectType.WATER_DROP, EffectType.AMBIENT_RAIN -> Color.parseColor("#FF00AA")
+            EffectType.NEON_LIGHTNING -> Color.parseColor("#B026FF")
+            EffectType.COSMIC_SUPERNOVA -> Color.parseColor("#00FFFF")
+            EffectType.MOLTEN_MAGMA -> Color.parseColor("#FFAA00")
+            EffectType.SONIC_WAVE -> Color.parseColor("#0088FF")
+            EffectType.BLACK_HOLE -> Color.parseColor("#00FFF5")
+            EffectType.RAZER_CHROMA -> Color.parseColor("#FF00AA")
+        }
+
+        // 1. Bottom Glow Diffuser Bar (Underglow shine along bottom keyboard bezel)
+        val bottomBarHeight = 26f * density
+        val bottomGradient = LinearGradient(
+            0f, bottom - bottomBarHeight, 0f, bottom,
+            intArrayOf(Color.TRANSPARENT, adjustAlpha(secondaryCol, 0.40f * brightness), adjustAlpha(primaryCol, 0.85f * brightness)),
+            floatArrayOf(0f, 0.45f, 1f),
+            Shader.TileMode.CLAMP
+        )
+        underglowFillPaint.shader = bottomGradient
+        canvas.drawRect(left, bottom - bottomBarHeight, right, bottom, underglowFillPaint)
+
+        // 2. Left & Right Vertical Accent Diffusers
+        val railWidth = 14f * density
+        val leftGradient = LinearGradient(
+            left, 0f, left + railWidth, 0f,
+            intArrayOf(adjustAlpha(primaryCol, 0.70f * brightness), Color.TRANSPARENT),
+            null, Shader.TileMode.CLAMP
+        )
+        underglowFillPaint.shader = leftGradient
+        canvas.drawRect(left, top, left + railWidth, bottom, underglowFillPaint)
+
+        val rightGradient = LinearGradient(
+            right - railWidth, 0f, right, 0f,
+            intArrayOf(Color.TRANSPARENT, adjustAlpha(secondaryCol, 0.70f * brightness)),
+            null, Shader.TileMode.CLAMP
+        )
+        underglowFillPaint.shader = rightGradient
+        canvas.drawRect(right - railWidth, top, right, bottom, underglowFillPaint)
+
+        // 3. Perimeter Bezel Ribbon (Outer Diffuse Aura + Inner Bright Neon Core)
+        val inset = 3f * density
+        val perimeterRect = RectF(left + inset, top + inset, right - inset, bottom - inset)
+        val cornerRadius = 14f * density
+
+        val borderGradient = LinearGradient(
+            left, top, right, bottom,
+            intArrayOf(primaryCol, secondaryCol, primaryCol),
+            null, Shader.TileMode.MIRROR
+        )
+
+        // Outer Diffused Glow
+        underglowGlowPaint.shader = borderGradient
+        underglowGlowPaint.strokeWidth = 9f * density * (0.8f + brightness * 0.4f)
+        underglowGlowPaint.alpha = (90 * brightness).toInt().coerceIn(0, 255)
+        canvas.drawRoundRect(perimeterRect, cornerRadius, cornerRadius, underglowGlowPaint)
+
+        // Inner Core Neon Line
+        underglowPaint.shader = borderGradient
+        underglowPaint.strokeWidth = 2.4f * density
+        underglowPaint.alpha = (235 * brightness).toInt().coerceIn(0, 255)
+        canvas.drawRoundRect(perimeterRect, cornerRadius, cornerRadius, underglowPaint)
+    }
+
+    private fun adjustAlpha(color: Int, factor: Float): Int {
+        val alpha = (Color.alpha(color) * factor).toInt().coerceIn(0, 255)
+        return Color.argb(alpha, Color.red(color), Color.green(color), Color.blue(color))
     }
 }

@@ -21,6 +21,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var switchTurboDynamics: MaterialSwitch
     private lateinit var switchGlideTrail: MaterialSwitch
     private lateinit var switchHaptic: MaterialSwitch
+    private lateinit var switchUnderglow: MaterialSwitch
     private lateinit var switchCustomColors: MaterialSwitch
     private lateinit var chipGroupSwatches: ChipGroup
 
@@ -39,6 +40,7 @@ class MainActivity : AppCompatActivity() {
         switchTurboDynamics = findViewById(R.id.switchTurboDynamics)
         switchGlideTrail = findViewById(R.id.switchGlideTrail)
         switchHaptic = findViewById(R.id.switchHaptic)
+        switchUnderglow = findViewById(R.id.switchUnderglow)
         switchCustomColors = findViewById(R.id.switchCustomColors)
         chipGroupSwatches = findViewById(R.id.chipGroupSwatches)
 
@@ -64,6 +66,7 @@ class MainActivity : AppCompatActivity() {
             useCustomColors = currentSettings.useCustomColors
             isTurboDynamicsEnabled = currentSettings.isTurboDynamicsEnabled
             isGlideTrailEnabled = currentSettings.isGlideTrailEnabled
+            isUnderglowEnabled = currentSettings.isUnderglowEnabled
 
             try {
                 customColorPrimary = Color.parseColor(currentSettings.colorPrimary)
@@ -117,6 +120,13 @@ class MainActivity : AppCompatActivity() {
         switchHaptic.isChecked = currentSettings.isHapticEnabled
         switchHaptic.setOnCheckedChangeListener { _, isChecked ->
             currentSettings.isHapticEnabled = isChecked
+            ConfigManager.saveSettings(this, currentSettings)
+        }
+
+        switchUnderglow.isChecked = currentSettings.isUnderglowEnabled
+        switchUnderglow.setOnCheckedChangeListener { _, isChecked ->
+            currentSettings.isUnderglowEnabled = isChecked
+            previewOverlay.isUnderglowEnabled = isChecked
             ConfigManager.saveSettings(this, currentSettings)
         }
 

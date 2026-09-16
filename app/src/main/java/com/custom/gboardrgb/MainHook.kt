@@ -26,6 +26,7 @@ class MainHook : IXposedHookLoadPackage {
         private const val TARGET_PACKAGE = "com.google.android.inputmethod.latin"
         
         private var currentInputViewRef: WeakReference<ViewGroup>? = null
+        private var currentRootViewRef: WeakReference<ViewGroup>? = null
         private var currentKeyboardHolderRef: WeakReference<View>? = null
         private var currentOverlayRef: WeakReference<RGBRippleOverlayView>? = null
         private var isReceiverRegistered = false
@@ -54,9 +55,9 @@ class MainHook : IXposedHookLoadPackage {
                 if (isHoldingKey) {
                     val overlay = currentOverlayRef?.get()
                     overlay?.spawnRipple(holdOverlayX, holdOverlayY)
-                    val inputView = currentInputViewRef?.get()
-                    if (inputView != null) {
-                        triggerHaptic(inputView.context)
+                    val ctx = currentInputViewRef?.get()?.context ?: overlay?.context ?: currentRootViewRef?.get()?.context
+                    if (ctx != null) {
+                        triggerHaptic(ctx)
                     }
                     holdHandler?.postDelayed(this, 115)
                 }
@@ -158,39 +159,76 @@ class MainHook : IXposedHookLoadPackage {
                 object : XC_MethodHook() {
                     override fun beforeHookedMethod(param: MethodHookParam) {
                         val view = param.thisObject as? ViewGroup ?: return
-                        val inputView = currentInputViewRef?.get() ?: return
+                        if (view.context.packageName != TARGET_PACKAGE) return
 
-                        if (view === inputView) {
-                            val event = param.args[0] as? MotionEvent ?: return
-                            val overlay = currentOverlayRef?.get() ?: return
+                        val root = currentRootViewRef?.get() ?: (view.rootView as? ViewGroup)
+                        val isRoot = (view === root) || (view.javaClass.simpleName == "DecorView")
 
-                            val action = event.actionMasked
-                            val ptrIdx = if (action == MotionEvent.ACTION_POINTER_DOWN) event.actionIndex else 0
-                            val rawX = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) event.getRawX(ptrIdx) else event.rawX
-                            val rawY = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) event.getRawY(ptrIdx) else event.rawY
+                        // Process touch event exactly once per gesture at the top-level window/DecorView
+                        if (!isRoot) return
 
-                            when (action) {
-                                MotionEvent.ACTION_DOWN, MotionEvent.ACTION_POINTER_DOWN -> {
-                                    handleTouchDown(rawX, rawY, overlay, inputView.context)
+                        if (currentRootViewRef?.get() == null) {
+                            currentRootViewRef = WeakReference(view)
+                        }
+
+                        var overlay = currentOverlayRef?.get()
+                        if (overlay == null || overlay.parent == null) {
+                            mountOverlaySafely(view)
+                            overlay = currentOverlayRef?.get() ?: return
+                        }
+
+                        val event = param.args[0] as? MotionEvent ?: return
+                        val action = event.actionMasked
+
+                        val ptrIdx = if (action == MotionEvent.ACTION_POINTER_DOWN) event.actionIndex else 0
+                        val rawX = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) event.getRawX(ptrIdx) else event.rawX
+                        val rawY = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) event.getRawY(ptrIdx) else event.rawY
+
+                        // Find currently active keyboard body (supports docked, floating, one-handed)
+                        var kb = currentKeyboardHolderRef?.get()
+                        if (kb == null || !kb.isShown || kb.width <= 0 || kb.height <= 0) {
+                            kb = findKeyboardHolder(view)
+                            if (kb != null) {
+                                currentKeyboardHolderRef = WeakReference(kb)
+                                overlay.setKeyboardTarget(kb)
+                            }
+                        }
+
+                        // Filter out touches outside keyboard area (e.g. background taps when in floating mode)
+                        if (kb != null && kb.isShown && kb.width > 0 && kb.height > 0) {
+                            val kbLoc = IntArray(2)
+                            kb.getLocationOnScreen(kbLoc)
+                            val left = kbLoc[0].toFloat()
+                            val top = kbLoc[1].toFloat()
+                            val right = left + kb.width
+                            val bottom = top + kb.height
+
+                            if (rawX < left || rawX > right || rawY < top || rawY > bottom) {
+                                return
+                            }
+                        }
+
+                        when (action) {
+                            MotionEvent.ACTION_DOWN, MotionEvent.ACTION_POINTER_DOWN -> {
+                                handleTouchDown(rawX, rawY, overlay, view.context)
+                            }
+                            MotionEvent.ACTION_MOVE -> {
+                                if (isHoldingKey) {
+                                    val dist = hypot(rawX - holdRawStartX, rawY - holdRawStartY)
+                                    if (dist > 35f) {
+                                        stopHolding()
+                                    }
                                 }
-                                MotionEvent.ACTION_MOVE -> {
-                                    if (isHoldingKey) {
-                                        val dist = hypot(rawX - holdRawStartX, rawY - holdRawStartY)
-                                        if (dist > 35f) {
-                                            stopHolding()
-                                        }
-                                    }
-                                    if (isGlideTrailEnabled) {
-                                        val overlayLoc = IntArray(2)
-                                        overlay.getLocationOnScreen(overlayLoc)
-                                        overlay.addGlidePoint(rawX - overlayLoc[0], rawY - overlayLoc[1])
-                                    }
+                                if (isGlideTrailEnabled) {
+                                    val overlayLoc = IntArray(2)
+                                    overlay.getLocationOnScreen(overlayLoc)
+                                    overlay.addGlidePoint(rawX - overlayLoc[0], rawY - overlayLoc[1])
                                 }
-                                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL, MotionEvent.ACTION_POINTER_UP -> {
-                                    stopHolding()
-                                    if (isGlideTrailEnabled) {
-                                        overlay.finishGlide()
-                                    }
+                            }
+                            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL, MotionEvent.ACTION_POINTER_UP -> {
+                                stopHolding()
+                                if (isGlideTrailEnabled) {
+                                    overlay.finishGlide()
                                 }
                             }
                         }
@@ -277,6 +315,7 @@ class MainHook : IXposedHookLoadPackage {
                     val turbo = intent.getBooleanExtra(ConfigManager.EXTRA_TURBO_DYNAMICS, true)
                     val glide = intent.getBooleanExtra(ConfigManager.EXTRA_GLIDE_TRAIL, true)
                     val haptic = intent.getBooleanExtra(ConfigManager.EXTRA_HAPTIC, true)
+                    val underglow = intent.getBooleanExtra(ConfigManager.EXTRA_UNDERGLOW, true)
 
                     isHapticEnabled = haptic
                     isTurboDynamicsEnabled = turbo
@@ -290,6 +329,7 @@ class MainHook : IXposedHookLoadPackage {
                     overlay.useCustomColors = useCustom
                     overlay.isTurboDynamicsEnabled = turbo
                     overlay.isGlideTrailEnabled = glide
+                    overlay.isUnderglowEnabled = underglow
 
                     try {
                         overlay.customColorPrimary = Color.parseColor(colPrimStr)
@@ -298,7 +338,7 @@ class MainHook : IXposedHookLoadPackage {
                         // Keep current
                     }
 
-                    XposedBridge.log("[$TAG] Real-time setting switch applied! customColors=$useCustom, turbo=$turbo, glide=$glide, haptic=$haptic")
+                    XposedBridge.log("[$TAG] Real-time setting switch applied! customColors=$useCustom, turbo=$turbo, glide=$glide, haptic=$haptic, underglow=$underglow")
                 }
             }
 
@@ -314,18 +354,21 @@ class MainHook : IXposedHookLoadPackage {
         }
     }
 
-    private fun mountOverlaySafely(inputView: ViewGroup) {
-        inputView.post {
+    private fun mountOverlaySafely(anchorView: ViewGroup) {
+        anchorView.post {
             try {
-                val kbBody = findKeyboardHolder(inputView)
+                val root = (anchorView.rootView as? ViewGroup) ?: anchorView
+                currentRootViewRef = WeakReference(root)
+
+                val kbBody = findKeyboardHolder(root)
                 if (kbBody != null) {
                     currentKeyboardHolderRef = WeakReference(kbBody)
                 }
 
                 var overlay = currentOverlayRef?.get()
-                if (overlay != null && overlay.parent === inputView) {
+                if (overlay != null && overlay.parent === root) {
                     if (kbBody != null) overlay.setKeyboardTarget(kbBody)
-                    inputView.bringChildToFront(overlay)
+                    root.bringChildToFront(overlay)
                     overlay.bringToFront()
                     return@post
                 }
@@ -334,7 +377,7 @@ class MainHook : IXposedHookLoadPackage {
                     (overlay.parent as? ViewGroup)?.removeView(overlay)
                 }
 
-                overlay = RGBRippleOverlayView(inputView.context).apply {
+                overlay = RGBRippleOverlayView(root.context).apply {
                     layoutParams = FrameLayout.LayoutParams(
                         FrameLayout.LayoutParams.MATCH_PARENT,
                         FrameLayout.LayoutParams.MATCH_PARENT
@@ -349,6 +392,7 @@ class MainHook : IXposedHookLoadPackage {
                 overlay.useCustomColors = initialSettings.useCustomColors
                 overlay.isTurboDynamicsEnabled = initialSettings.isTurboDynamicsEnabled
                 overlay.isGlideTrailEnabled = initialSettings.isGlideTrailEnabled
+                overlay.isUnderglowEnabled = initialSettings.isUnderglowEnabled
 
                 try {
                     overlay.customColorPrimary = Color.parseColor(initialSettings.colorPrimary)
@@ -365,11 +409,11 @@ class MainHook : IXposedHookLoadPackage {
                     overlay.setKeyboardTarget(kbBody)
                 }
 
-                inputView.addView(overlay)
-                inputView.bringChildToFront(overlay)
+                root.addView(overlay)
+                root.bringChildToFront(overlay)
                 overlay.bringToFront()
                 currentOverlayRef = WeakReference(overlay)
-                XposedBridge.log("[$TAG] Mounted overlay with effect: ${overlay.currentEffect.name}")
+                XposedBridge.log("[$TAG] Mounted overlay on root: ${root.javaClass.simpleName} with effect: ${overlay.currentEffect.name}")
             } catch (e: Exception) {
                 XposedBridge.log("[$TAG] Mount error: ${e.message}")
             }
@@ -378,14 +422,20 @@ class MainHook : IXposedHookLoadPackage {
 
     private fun findKeyboardHolder(view: View): View? {
         if (view !is ViewGroup) return null
+        if (!view.isShown || view.visibility != View.VISIBLE || view.width <= 0 || view.height <= 0) {
+            return null
+        }
         val name = view.javaClass.simpleName
-        if (name.contains("KeyboardHolder") || name.contains("SoftKeyboardView")) {
+        if (name.contains("KeyboardHolder")) {
             return view
         }
         for (i in 0 until view.childCount) {
             val child = view.getChildAt(i)
             val found = findKeyboardHolder(child)
             if (found != null) return found
+        }
+        if (name.contains("SoftKeyboardView")) {
+            return view
         }
         return null
     }

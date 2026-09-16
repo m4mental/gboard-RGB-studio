@@ -120,6 +120,16 @@
             android:textSize="13sp"
             android:textStyle="bold" />
 
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/switchUnderglow"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="💡 Perimeter Underglow (Mechanical edge ambient &amp; pulse glow)"
+            android:textColor="@color/white"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
         <!-- Custom Dual-Tone Palette Section -->
         <com.google.android.material.materialswitch.MaterialSwitch
             android:id="@+id/switchCustomColors"
