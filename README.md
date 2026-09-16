@@ -7,11 +7,21 @@
 
 **Gboard RGB Studio** is an advanced LSPosed module and real-time companion control app that injects dynamic, reactive visual effects and fluid particle physics directly into **Google Keyboard (Gboard)** on rooted Android devices.
 
-All effects render inside a custom hardware-accelerated canvas overlay strictly confined to the keyboard frame — supporting floating keyboard, one-handed mode, and custom heights without altering or displacing the keyboard layout.
+All effects render inside a custom hardware-accelerated canvas overlay dynamically mapped to the keyboard chassis — supporting **Standard Docked Keyboard**, **Floating Keyboard Mode**, and **One-Handed Mode** without altering or displacing the keyboard layout.
 
 ---
 
 ## ✨ Key Features
+
+- 💡 **Perimeter Underglow (Mechanical Keyboard Edge Lighting):**
+  - Continuous ambient luminous breathing aura tracing the outer perimeter of the keyboard chassis.
+  - Pulses and surges with reactive brilliance on every keypress.
+  - Automatically color-synced with active procedural presets or custom dual-tone palettes.
+  - Dedicated one-tap toggle switch in the companion app with zero-latency IPC broadcast synchronization.
+
+- 🪟 **Complete Floating & One-Handed Keyboard Mode Support:**
+  - Full compatibility with Gboard's **Floating Mode** and **One-Handed Mode**.
+  - Dynamic discovery of the active keyboard chassis (`KeyboardHolder`) with automatic hit-testing and real-time drag tracking across the screen.
 
 - 💧 **7 Procedural Visual Effect Presets:**
   1. **💧 Fluid Water Droplet:** Realistic liquid splash with expanding caustic refraction ripples.
@@ -49,7 +59,7 @@ All effects render inside a custom hardware-accelerated canvas overlay strictly 
   - Sub-millisecond tactile micro-ticks (`EFFECT_TICK`) synced with single taps, liquid droplet impacts, and key repeats.
 
 - 🔒 **Dynamic Boundary Clipping:**
-  - Strictly clipped to Gboard's visible boundaries (`SoftKeyboardView` / `KeyboardHolder`), preventing visual spillover into chat history or status bars.
+  - Strictly clipped to Gboard's visible boundaries (`SoftKeyboardView` / `KeyboardHolder`), preventing visual spillover into chat history or status bars while preserving outer underglow diffusion.
 
 ---
 
@@ -57,8 +67,8 @@ All effects render inside a custom hardware-accelerated canvas overlay strictly 
 
 The module includes a native Material 3 AMOLED Dark UI featuring:
 - **Interactive Live Preview Canvas:** Tap on the preview box to test any preset, speed, or size immediately.
-- **Single-Tap Preset Selectors:** Filter chips for all 7 presets.
-- **Ambient Raindrop Toggle:** Enable or disable idle falling rain with one tap.
+- **Single-Tap Preset Selectors:** Filter chips for all presets.
+- **Toggle Switches:** Real-time controls for Haptic Feedback, Typing Speed Dynamics, Swipe/Glide Trail, and Perimeter Underglow.
 - **Embedded Typing Sandbox:** Built-in test field to test Gboard reactions directly inside the app.
 
 ---
@@ -68,8 +78,8 @@ The module includes a native Material 3 AMOLED Dark UI featuring:
 | Component | Implementation |
 | :--- | :--- |
 | **Hook Engine** | LSPosed / Xposed API (`IXposedHookLoadPackage`) targeting `com.google.android.inputmethod.latin` |
-| **Render Surface** | Hardware-accelerated custom `View` (`RGBRippleOverlayView`) mounted directly on Gboard's root `InputView` |
-| **Touch Interception** | Non-intrusive hook on `ViewGroup.dispatchTouchEvent` with screen-to-keyboard coordinate translation |
+| **Render Surface** | Hardware-accelerated custom `View` (`RGBRippleOverlayView`) mounted directly on window `DecorView` with dynamic `KeyboardHolder` chassis tracking |
+| **Touch Interception** | Non-intrusive hook on `ViewGroup.dispatchTouchEvent` at root level with active chassis hit-testing and screen coordinate normalization |
 | **Inter-Process Comm** | Dual-channel: Android System `BroadcastReceiver` + JSON persistence (`/data/local/tmp/gboard_rgb_config.json`) |
 | **Design Language** | Material 3 Dark AMOLED (`#000000` pitch black background, `#00FFF5` electric cyan accents) |
 
