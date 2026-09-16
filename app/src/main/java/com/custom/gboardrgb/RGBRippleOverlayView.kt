@@ -21,6 +21,22 @@ class RGBRippleOverlayView(context: Context) : View(context) {
     var speedMultiplier: Float = 1.0f
     var sizeMultiplier: Float = 1.0f
 
+    // 1. Custom Dual-Tone Colors
+    var useCustomColors: Boolean = false
+    var customColorPrimary: Int = Color.parseColor("#00FFF5")
+    var customColorSecondary: Int = Color.parseColor("#FF00AA")
+
+    // 2. Turbo WPM Dynamics
+    var isTurboDynamicsEnabled: Boolean = true
+    var turboFactor: Float = 1.0f
+
+    // 3. Swipe / Glide Neon Laser Trail
+    var isGlideTrailEnabled: Boolean = true
+    private data class GlidePoint(val x: Float, val y: Float, val time: Long)
+    private val glidePoints = CopyOnWriteArrayList<GlidePoint>()
+    private var glideAlpha = 1.0f
+    private var glideFadeAnimator: ValueAnimator? = null
+
     var isAmbientRainEnabled: Boolean = true
         set(value) {
             field = value
@@ -70,9 +86,29 @@ class RGBRippleOverlayView(context: Context) : View(context) {
         Color.parseColor("#0088FF"), Color.parseColor("#00FF66")
     )
 
+    private fun getActiveLiquidPalette(): IntArray {
+        if (useCustomColors) {
+            return intArrayOf(
+                customColorPrimary, customColorSecondary, customColorPrimary,
+                customColorSecondary, customColorPrimary
+            )
+        }
+        return liquidWaterPalette
+    }
+
+    private fun getActiveChromaPalette(): IntArray {
+        if (useCustomColors) {
+            return intArrayOf(
+                customColorPrimary, customColorSecondary, customColorPrimary,
+                customColorSecondary, customColorPrimary
+            )
+        }
+        return chromaColors
+    }
+
     private val activeEffects = CopyOnWriteArrayList<ActiveEffect>()
 
-    // Standard high-performance hardware-accelerated paints (No conflicting xfermode)
+    // Standard high-performance hardware-accelerated paints
     private val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
         strokeCap = Paint.Cap.ROUND
@@ -83,6 +119,17 @@ class RGBRippleOverlayView(context: Context) : View(context) {
     private val glowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
         strokeCap = Paint.Cap.ROUND
+    }
+
+    private val glidePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        strokeCap = Paint.Cap.ROUND
+        strokeJoin = Paint.Join.ROUND
+    }
+    private val glideGlowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        strokeCap = Paint.Cap.ROUND
+        strokeJoin = Paint.Join.ROUND
     }
 
     private data class Particle(
@@ -106,6 +153,61 @@ class RGBRippleOverlayView(context: Context) : View(context) {
 
     private val fluidInterpolator = Interpolator { t -> (1.0f - (1.0f - t).pow(2.8f)) }
     private val decelerateInterpolator = DecelerateInterpolator(1.6f)
+
+    // --- Glide Laser Trail Methods ---
+    fun addGlidePoint(x: Float, y: Float) {
+        if (!isGlideTrailEnabled) return
+        glideFadeAnimator?.cancel()
+        glideAlpha = 1.0f
+        val now = System.currentTimeMillis()
+        glidePoints.add(GlidePoint(x, y, now))
+        while (glidePoints.size > 26) {
+            glidePoints.removeAt(0)
+        }
+        invalidate()
+    }
+
+    fun finishGlide() {
+        if (glidePoints.isEmpty()) return
+        glideFadeAnimator?.cancel()
+        glideFadeAnimator = ValueAnimator.ofFloat(1.0f, 0f).apply {
+            duration = 180L
+            addUpdateListener { anim ->
+                glideAlpha = anim.animatedValue as Float
+                invalidate()
+                if (glideAlpha <= 0.02f) {
+                    glidePoints.clear()
+                }
+            }
+            start()
+        }
+    }
+
+    private fun drawGlideTrail(canvas: Canvas) {
+        val count = glidePoints.size
+        if (count < 2) return
+
+        val headColor = if (useCustomColors) customColorPrimary else Color.parseColor("#00FFF5")
+        val tailColor = if (useCustomColors) customColorSecondary else Color.parseColor("#7A00FF")
+
+        for (i in 0 until count - 1) {
+            val p1 = glidePoints[i]
+            val p2 = glidePoints[i + 1]
+            val r = (i + 1).toFloat() / count
+
+            // Outer Neon Glow
+            glideGlowPaint.color = tailColor
+            glideGlowPaint.strokeWidth = 22f * r + 4f
+            glideGlowPaint.alpha = (90 * r * glideAlpha).toInt().coerceIn(0, 255)
+            canvas.drawLine(p1.x, p1.y, p2.x, p2.y, glideGlowPaint)
+
+            // Core Laser Beam
+            glidePaint.color = headColor
+            glidePaint.strokeWidth = 11f * r + 2.5f
+            glidePaint.alpha = (255 * r * glideAlpha).toInt().coerceIn(0, 255)
+            canvas.drawLine(p1.x, p1.y, p2.x, p2.y, glidePaint)
+        }
+    }
 
     // --- Ambient Raindrop Loop ---
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -164,16 +266,17 @@ class RGBRippleOverlayView(context: Context) : View(context) {
         val kbW = target?.width?.toFloat() ?: (if (width > 0) width.toFloat() else 1080f)
         val kbH = target?.height?.toFloat() ?: (if (height > 0) height.toFloat() else 850f)
 
-        val baseRadius = max(kbW, kbH) * (if (isMiniDrop) 0.38f else 0.95f) * sizeMultiplier
+        val turbo = if (isTurboDynamicsEnabled && !isMiniDrop) turboFactor else 1.0f
+        val baseRadius = max(kbW, kbH) * (if (isMiniDrop) 0.38f else 0.95f) * sizeMultiplier * (1.0f + (turbo - 1.0f) * 0.22f)
 
         val particles = when (effectType) {
-            EffectType.COSMIC_SUPERNOVA -> generateSupernovaParticles(touchX, touchY)
-            EffectType.MOLTEN_MAGMA -> generateMagmaParticles(touchX, touchY)
+            EffectType.COSMIC_SUPERNOVA -> generateSupernovaParticles(touchX, touchY, turbo)
+            EffectType.MOLTEN_MAGMA -> generateMagmaParticles(touchX, touchY, turbo)
             else -> emptyList()
         }
 
         val lightningBolts = when (effectType) {
-            EffectType.NEON_LIGHTNING -> generateLightningBolts(touchX, touchY, baseRadius * 0.75f)
+            EffectType.NEON_LIGHTNING -> generateLightningBolts(touchX, touchY, baseRadius * 0.75f, turbo)
             else -> emptyList()
         }
 
@@ -224,55 +327,71 @@ class RGBRippleOverlayView(context: Context) : View(context) {
         }
     }
 
-    private fun generateSupernovaParticles(originX: Float, originY: Float): List<Particle> {
+    private fun generateSupernovaParticles(originX: Float, originY: Float, turbo: Float): List<Particle> {
         val list = mutableListOf<Particle>()
-        val colors = intArrayOf(
-            Color.parseColor("#FF00FF"), Color.parseColor("#00FFFF"),
-            Color.parseColor("#FFDD00"), Color.parseColor("#FFFFFF"), Color.parseColor("#B026FF")
-        )
-        for (i in 0 until 18) {
-            val angle = Random.nextFloat() * 2 * Math.PI.toFloat()
-            val speed = Random.nextFloat() * 22f + 6f
+        val colors = if (useCustomColors) {
+            intArrayOf(customColorPrimary, customColorSecondary, Color.WHITE)
+        } else {
+            intArrayOf(
+                Color.parseColor("#FF00FF"), Color.parseColor("#00FFFF"),
+                Color.parseColor("#FFEE55"), Color.parseColor("#FFFFFF"),
+                Color.parseColor("#AA00FF")
+            )
+        }
+        val count = (18 * turbo).toInt().coerceIn(12, 36)
+        for (i in 0 until count) {
+            val angle = (i.toFloat() / count) * 2 * Math.PI.toFloat() + (Random.nextFloat() - 0.5f) * 0.4f
+            val speed = (Random.nextFloat() * 12f + 4f) * (1.0f + (turbo - 1.0f) * 0.35f)
             list.add(
                 Particle(
                     x = originX, y = originY,
-                    vx = cos(angle) * speed, vy = sin(angle) * speed,
+                    vx = cos(angle) * speed,
+                    vy = sin(angle) * speed,
                     color = colors[Random.nextInt(colors.size)],
-                    maxRadius = Random.nextFloat() * 5f + 3f
+                    maxRadius = (Random.nextFloat() * 5f + 3f) * (1.0f + (turbo - 1.0f) * 0.2f)
                 )
             )
         }
         return list
     }
 
-    private fun generateMagmaParticles(originX: Float, originY: Float): List<Particle> {
+    private fun generateMagmaParticles(originX: Float, originY: Float, turbo: Float): List<Particle> {
         val list = mutableListOf<Particle>()
-        val colors = intArrayOf(
-            Color.parseColor("#FF2200"), Color.parseColor("#FF7700"),
-            Color.parseColor("#FFCC00"), Color.parseColor("#FFFFFF")
-        )
-        for (i in 0 until 12) {
-            val vx = (Random.nextFloat() - 0.5f) * 14f
-            val vy = -(Random.nextFloat() * 18f + 6f)
+        val colors = if (useCustomColors) {
+            intArrayOf(customColorPrimary, customColorSecondary, Color.WHITE)
+        } else {
+            intArrayOf(
+                Color.parseColor("#FF2200"), Color.parseColor("#FF7700"),
+                Color.parseColor("#FFCC00"), Color.parseColor("#FFFFFF")
+            )
+        }
+        val count = (12 * turbo).toInt().coerceIn(8, 26)
+        for (i in 0 until count) {
+            val vx = (Random.nextFloat() - 0.5f) * 14f * turbo
+            val vy = -(Random.nextFloat() * 18f + 6f) * turbo
             list.add(
                 Particle(
                     x = originX, y = originY,
                     vx = vx, vy = vy,
                     color = colors[Random.nextInt(colors.size)],
-                    maxRadius = Random.nextFloat() * 4.5f + 2f
+                    maxRadius = (Random.nextFloat() * 4.5f + 2f) * (1.0f + (turbo - 1.0f) * 0.2f)
                 )
             )
         }
         return list
     }
 
-    private fun generateLightningBolts(originX: Float, originY: Float, reach: Float): List<LightningBolt> {
+    private fun generateLightningBolts(originX: Float, originY: Float, reach: Float, turbo: Float): List<LightningBolt> {
         val bolts = mutableListOf<LightningBolt>()
-        val colors = intArrayOf(
-            Color.parseColor("#00F5FF"), Color.parseColor("#FFFFFF"),
-            Color.parseColor("#B026FF"), Color.parseColor("#00FFFF")
-        )
-        val boltCount = Random.nextInt(4, 6)
+        val colors = if (useCustomColors) {
+            intArrayOf(customColorPrimary, customColorSecondary, Color.WHITE)
+        } else {
+            intArrayOf(
+                Color.parseColor("#00F5FF"), Color.parseColor("#FFFFFF"),
+                Color.parseColor("#B026FF"), Color.parseColor("#00FFFF")
+            )
+        }
+        val boltCount = if (turbo > 1.25f) Random.nextInt(5, 8) else Random.nextInt(4, 6)
         for (i in 0 until boltCount) {
             val path = Path()
             path.moveTo(originX, originY)
@@ -280,7 +399,7 @@ class RGBRippleOverlayView(context: Context) : View(context) {
             var currX = originX
             var currY = originY
             val segments = 6
-            val stepDist = reach / segments
+            val stepDist = (reach * (1.0f + (turbo - 1.0f) * 0.2f)) / segments
 
             for (s in 1..segments) {
                 val segAngle = baseAngle + (Random.nextFloat() - 0.5f) * 0.8f
@@ -295,7 +414,7 @@ class RGBRippleOverlayView(context: Context) : View(context) {
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-        if (activeEffects.isEmpty()) return
+        if (activeEffects.isEmpty() && glidePoints.isEmpty()) return
 
         val kb = keyboardTargetRef?.get()
         canvas.save()
@@ -310,6 +429,11 @@ class RGBRippleOverlayView(context: Context) : View(context) {
             canvas.clipRect(left, top, left + kb.width, top + kb.height)
         } else {
             canvas.clipRect(0f, 0f, width.toFloat(), height.toFloat())
+        }
+
+        // Render Swipe/Glide Neon Laser Trail
+        if (isGlideTrailEnabled && glidePoints.size >= 2) {
+            drawGlideTrail(canvas)
         }
 
         for (fx in activeEffects) {
@@ -342,7 +466,8 @@ class RGBRippleOverlayView(context: Context) : View(context) {
         canvas.save()
         canvas.translate(fx.originX, fx.originY)
 
-        val shader = SweepGradient(0f, 0f, liquidWaterPalette, liquidPositions)
+        val palette = getActiveLiquidPalette()
+        val shader = SweepGradient(0f, 0f, palette, null)
         val mat = Matrix()
         mat.setRotate(p * 90f)
         shader.setLocalMatrix(mat)
@@ -350,7 +475,7 @@ class RGBRippleOverlayView(context: Context) : View(context) {
         if (p < 0.28f) {
             val splashAlpha = ((1.0f - (p / 0.28f)) * 180).toInt().coerceIn(0, 255)
             fillPaint.shader = null
-            fillPaint.color = Color.parseColor("#8000FFF5")
+            fillPaint.color = if (useCustomColors) customColorPrimary else Color.parseColor("#8000FFF5")
             fillPaint.alpha = splashAlpha
             canvas.drawCircle(0f, 0f, 25f * (1.0f + p * 2.5f), fillPaint)
         }
@@ -361,21 +486,21 @@ class RGBRippleOverlayView(context: Context) : View(context) {
         canvas.drawCircle(0f, 0f, baseR, glowPaint)
 
         strokePaint.shader = shader
-        strokePaint.strokeWidth = 18f * energyFade + 4f
+        strokePaint.strokeWidth = 14f * energyFade + 3f
         strokePaint.alpha = (energyFade * 255).toInt().coerceIn(0, 255)
         canvas.drawCircle(0f, 0f, baseR, strokePaint)
 
-        val r2 = baseR * 0.72f
-        if (r2 > 10f) {
-            strokePaint.strokeWidth = 14f * energyFade + 3f
-            strokePaint.alpha = (energyFade * 190).toInt().coerceIn(0, 255)
+        if (baseR > 40f) {
+            val r2 = baseR - 28f
+            strokePaint.strokeWidth = 9f * energyFade + 2f
+            strokePaint.alpha = (energyFade * 180).toInt().coerceIn(0, 255)
             canvas.drawCircle(0f, 0f, r2, strokePaint)
         }
 
-        val r3 = baseR * 0.45f
-        if (r3 > 15f) {
-            strokePaint.strokeWidth = 9f * energyFade + 2f
-            strokePaint.alpha = (energyFade * 130).toInt().coerceIn(0, 255)
+        if (baseR > 80f) {
+            val r3 = baseR - 58f
+            strokePaint.strokeWidth = 6f * energyFade + 1.5f
+            strokePaint.alpha = (energyFade * 110).toInt().coerceIn(0, 255)
             canvas.drawCircle(0f, 0f, r3, strokePaint)
         }
 
@@ -385,20 +510,38 @@ class RGBRippleOverlayView(context: Context) : View(context) {
     // --- 2. Cyberpunk Neon Lightning ---
     private fun drawNeonLightning(canvas: Canvas, fx: ActiveEffect) {
         val p = fx.progress
-        val fade = (1.0f - p).coerceIn(0f, 1f)
-        val flicker = if (Random.nextFloat() > 0.25f) 1.0f else 0.45f
+        val flashAlpha = if (p < 0.6f) {
+            if (Random.nextFloat() > 0.35f) 255 else 80
+        } else {
+            ((1.0f - p) / 0.4f * 255).toInt().coerceIn(0, 255)
+        }
+
+        val primaryCol = if (useCustomColors) customColorPrimary else Color.parseColor("#00F5FF")
+        val secondaryCol = if (useCustomColors) customColorSecondary else Color.parseColor("#B026FF")
+
+        if (p < 0.25f) {
+            fillPaint.shader = null
+            fillPaint.color = Color.WHITE
+            fillPaint.alpha = (200 * (1f - p / 0.25f)).toInt().coerceIn(0, 255)
+            canvas.drawCircle(fx.originX, fx.originY, 28f * (1f - p / 0.25f), fillPaint)
+        }
 
         for (bolt in fx.lightningBolts) {
             glowPaint.shader = null
-            glowPaint.color = bolt.color
-            glowPaint.strokeWidth = 24f * fade + 4f
-            glowPaint.alpha = (fade * flicker * 120).toInt().coerceIn(0, 255)
+            glowPaint.color = secondaryCol
+            glowPaint.strokeWidth = 18f * (1f - p * 0.7f)
+            glowPaint.alpha = (flashAlpha * 0.4f).toInt().coerceIn(0, 255)
             canvas.drawPath(bolt.path, glowPaint)
 
             strokePaint.shader = null
+            strokePaint.color = bolt.color
+            strokePaint.strokeWidth = 6f * (1f - p * 0.6f) + 1.5f
+            strokePaint.alpha = flashAlpha
+            canvas.drawPath(bolt.path, strokePaint)
+
             strokePaint.color = Color.WHITE
-            strokePaint.strokeWidth = 7f * fade + 2f
-            strokePaint.alpha = (fade * flicker * 255).toInt().coerceIn(0, 255)
+            strokePaint.strokeWidth = 2f
+            strokePaint.alpha = (flashAlpha * 0.85f).toInt().coerceIn(0, 255)
             canvas.drawPath(bolt.path, strokePaint)
         }
     }
@@ -407,24 +550,41 @@ class RGBRippleOverlayView(context: Context) : View(context) {
     private fun drawCosmicSupernova(canvas: Canvas, fx: ActiveEffect) {
         val p = fx.progress
         val fade = (1.0f - p).pow(1.5f)
+        val r = p * fx.maxRadius
 
-        if (p < 0.35f) {
-            val coreAlpha = ((1.0f - (p / 0.35f)) * 255).toInt().coerceIn(0, 255)
+        if (p < 0.22f) {
+            val coreAlpha = ((1f - p / 0.22f) * 255).toInt().coerceIn(0, 255)
             fillPaint.shader = null
             fillPaint.color = Color.WHITE
             fillPaint.alpha = coreAlpha
-            canvas.drawCircle(fx.originX, fx.originY, (p * 50f) + 12f, fillPaint)
+            canvas.drawCircle(fx.originX, fx.originY, 32f * (1f - p * 2f), fillPaint)
         }
 
+        val palette = if (useCustomColors) {
+            intArrayOf(customColorPrimary, customColorSecondary, Color.WHITE)
+        } else {
+            intArrayOf(Color.parseColor("#FF00FF"), Color.parseColor("#00FFFF"), Color.parseColor("#FFEE55"))
+        }
+        val shockShader = SweepGradient(fx.originX, fx.originY, palette, null)
+        glowPaint.shader = shockShader
+        glowPaint.strokeWidth = 26f * fade + 4f
+        glowPaint.alpha = (fade * 140).toInt().coerceIn(0, 255)
+        canvas.drawCircle(fx.originX, fx.originY, r, glowPaint)
+
+        strokePaint.shader = shockShader
+        strokePaint.strokeWidth = 10f * fade + 2f
+        strokePaint.alpha = (fade * 255).toInt().coerceIn(0, 255)
+        canvas.drawCircle(fx.originX, fx.originY, r, strokePaint)
+
         fillPaint.shader = null
-        for (particle in fx.particles) {
-            fillPaint.color = particle.color
+        for (star in fx.particles) {
+            fillPaint.color = star.color
             fillPaint.alpha = (fade * 255).toInt().coerceIn(0, 255)
-            canvas.drawCircle(particle.x, particle.y, particle.maxRadius * fade + 1f, fillPaint)
+            canvas.drawCircle(star.x, star.y, star.maxRadius * fade + 1f, fillPaint)
         }
     }
 
-    // --- 4. Molten Magma & Embers ---
+    // --- 4. Molten Magma ---
     private fun drawMoltenMagma(canvas: Canvas, fx: ActiveEffect) {
         val p = fx.progress
         val fade = (1.0f - p).pow(1.4f)
@@ -433,17 +593,21 @@ class RGBRippleOverlayView(context: Context) : View(context) {
         canvas.save()
         canvas.translate(fx.originX, fx.originY)
 
-        val shader = SweepGradient(0f, 0f, magmaColors, null)
+        val palette = if (useCustomColors) {
+            intArrayOf(customColorPrimary, customColorSecondary, customColorPrimary)
+        } else {
+            magmaColors
+        }
+        val shader = SweepGradient(0f, 0f, palette, null)
         glowPaint.shader = shader
-        glowPaint.strokeWidth = 38f * fade + 6f
-        glowPaint.alpha = (fade * 140).toInt().coerceIn(0, 255)
+        glowPaint.strokeWidth = 32f * fade + 6f
+        glowPaint.alpha = (fade * 160).toInt().coerceIn(0, 255)
         canvas.drawCircle(0f, 0f, r, glowPaint)
 
         strokePaint.shader = shader
-        strokePaint.strokeWidth = 18f * fade + 4f
+        strokePaint.strokeWidth = 16f * fade + 3f
         strokePaint.alpha = (fade * 255).toInt().coerceIn(0, 255)
         canvas.drawCircle(0f, 0f, r, strokePaint)
-
         canvas.restore()
 
         fillPaint.shader = null
@@ -458,9 +622,14 @@ class RGBRippleOverlayView(context: Context) : View(context) {
     private fun drawSonicWave(canvas: Canvas, fx: ActiveEffect) {
         val p = fx.progress
         val fade = (1.0f - p).pow(1.2f)
-        val baseR = p * fx.maxRadius
+        val r = p * fx.maxRadius
 
-        val shader = SweepGradient(fx.originX, fx.originY, sonicColors, null)
+        val palette = if (useCustomColors) {
+            intArrayOf(customColorPrimary, customColorSecondary, customColorPrimary)
+        } else {
+            sonicColors
+        }
+        val shader = SweepGradient(fx.originX, fx.originY, palette, null)
         strokePaint.shader = shader
         strokePaint.strokeWidth = 14f * fade + 3f
         strokePaint.alpha = (fade * 240).toInt().coerceIn(0, 255)
@@ -470,7 +639,7 @@ class RGBRippleOverlayView(context: Context) : View(context) {
         for (i in 0..segments) {
             val angle = (i.toFloat() / segments) * 2 * Math.PI.toFloat()
             val wobble = sin(angle * 7f + p * 12f) * (20f * fade)
-            val currR = baseR + wobble
+            val currR = r + wobble
             val px = fx.originX + cos(angle) * currR
             val py = fx.originY + sin(angle) * currR
             if (i == 0) wavePath.moveTo(px, py) else wavePath.lineTo(px, py)
@@ -478,9 +647,9 @@ class RGBRippleOverlayView(context: Context) : View(context) {
         wavePath.close()
         canvas.drawPath(wavePath, strokePaint)
 
-        if (baseR > 40f) {
+        if (r > 40f) {
             strokePaint.alpha = (fade * 140).toInt().coerceIn(0, 255)
-            canvas.drawCircle(fx.originX, fx.originY, baseR * 0.65f, strokePaint)
+            canvas.drawCircle(fx.originX, fx.originY, r * 0.65f, strokePaint)
         }
     }
 
@@ -491,7 +660,7 @@ class RGBRippleOverlayView(context: Context) : View(context) {
             val suctionProgress = p / 0.35f
             val contractR = (1.0f - suctionProgress) * 120f + 10f
             strokePaint.shader = null
-            strokePaint.color = Color.parseColor("#00F5FF")
+            strokePaint.color = if (useCustomColors) customColorPrimary else Color.parseColor("#00F5FF")
             strokePaint.strokeWidth = 12f * (1f - suctionProgress) + 3f
             strokePaint.alpha = (suctionProgress * 255).toInt().coerceIn(0, 255)
             canvas.drawCircle(fx.originX, fx.originY, contractR, strokePaint)
@@ -502,7 +671,8 @@ class RGBRippleOverlayView(context: Context) : View(context) {
 
             canvas.save()
             canvas.translate(fx.originX, fx.originY)
-            val shader = SweepGradient(0f, 0f, chromaColors, chromaPositions)
+            val palette = getActiveChromaPalette()
+            val shader = SweepGradient(0f, 0f, palette, null)
             strokePaint.shader = shader
             strokePaint.strokeWidth = 22f * fade + 4f
             strokePaint.alpha = (fade * 255).toInt().coerceIn(0, 255)
@@ -520,7 +690,8 @@ class RGBRippleOverlayView(context: Context) : View(context) {
         canvas.save()
         canvas.translate(fx.originX, fx.originY)
 
-        val shader = SweepGradient(0f, 0f, chromaColors, chromaPositions)
+        val palette = getActiveChromaPalette()
+        val shader = SweepGradient(0f, 0f, palette, null)
         glowPaint.shader = shader
         glowPaint.strokeWidth = 36f * fade + 8f
         glowPaint.alpha = (fade * 120).toInt().coerceIn(0, 255)

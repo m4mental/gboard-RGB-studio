@@ -36,6 +36,18 @@ All effects render inside a custom hardware-accelerated canvas overlay strictly 
   - **Animation Speed:** Scalable from `0.3x` (*Ultra Slow-Mo Liquid Glide*) up to `2.0x` (*Snappy Fast*).
   - **Wave Size / Reach:** Scalable from `0.3x` (*Micro Keycap Glow / Minimalist*) up to `1.5x` (*Full Keyboard Reach*).
 
+- 🎨 **Custom Dual-Tone Palettes & Curated Swatches:**
+  - One-tap switchable aesthetic presets: **Nothing OS** (Red/White), **Cyberpunk** (Yellow/Cyan), **Dracula** (Purple/Green), **Sunset** (Orange/Pink), and **Glacier Ice** (Cyan/White).
+
+- 🔥 **Typing Speed (WPM) Adaptive Dynamics ("Turbo Overheat"):**
+  - Instantaneous typing speed tracker (rolling window). Burst fast typing (> 70 WPM) supercharges effects with **+65% extra particles, blazing sparks**, and intensified core glow!
+
+- ✨ **Swipe / Glide Typing Neon Laser Trail:**
+  - Fluid, luminous laser beam with outer neon glow that traces swipe gestures across keys and dissipates with graceful stardust decay.
+
+- 📳 **Tactile Haptic Physics Sync:**
+  - Sub-millisecond tactile micro-ticks (`EFFECT_TICK`) synced with single taps, liquid droplet impacts, and key repeats.
+
 - 🔒 **Dynamic Boundary Clipping:**
   - Strictly clipped to Gboard's visible boundaries (`SoftKeyboardView` / `KeyboardHolder`), preventing visual spillover into chat history or status bars.
 

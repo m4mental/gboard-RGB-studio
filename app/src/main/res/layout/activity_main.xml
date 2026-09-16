@@ -79,16 +79,119 @@
             android:textColorHint="#555555"
             android:textSize="14sp" />
 
-        <!-- Idle Ambient Rain Switch -->
+        <!-- Dynamic Feature Switches -->
         <com.google.android.material.materialswitch.MaterialSwitch
             android:id="@+id/switchAmbientRain"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="18dp"
+            android:layout_marginTop="14dp"
             android:text="🌧️ Idle Ambient Raindrops (Every 2s on keyboard)"
             android:textColor="@color/white"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/switchTurboDynamics"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="🔥 Turbo Typing Speed (Extra glow &amp; sparks when typing fast)"
+            android:textColor="@color/white"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/switchGlideTrail"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="✨ Swipe / Glide Neon Laser Trail"
+            android:textColor="@color/white"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/switchHaptic"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="📳 Tactile Haptic Micro-Tick (Linear physics feedback)"
+            android:textColor="@color/white"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <!-- Custom Dual-Tone Palette Section -->
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/switchCustomColors"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="🎨 Use Custom Dual-Tone Palette"
+            android:textColor="@color/accent_cyan"
             android:textSize="14sp"
             android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tvSwatchesLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="Curated Color Themes:"
+            android:textColor="#AAAAAA"
+            android:textSize="12sp" />
+
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/chipGroupSwatches"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            app:singleSelection="true">
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipSwatchNothing"
+                style="@style/Widget.Material3.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🔴 Nothing OS"
+                android:textColor="@color/white"
+                app:chipBackgroundColor="@color/card_dark" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipSwatchCyberpunk"
+                style="@style/Widget.Material3.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🟡 Cyberpunk"
+                android:textColor="@color/white"
+                app:chipBackgroundColor="@color/card_dark" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipSwatchDracula"
+                style="@style/Widget.Material3.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="💜 Dracula"
+                android:textColor="@color/white"
+                app:chipBackgroundColor="@color/card_dark" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipSwatchSunset"
+                style="@style/Widget.Material3.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🌅 Sunset"
+                android:textColor="@color/white"
+                app:chipBackgroundColor="@color/card_dark" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipSwatchIce"
+                style="@style/Widget.Material3.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="❄️ Glacier Ice"
+                android:textColor="@color/white"
+                app:chipBackgroundColor="@color/card_dark" />
+        </com.google.android.material.chip.ChipGroup>
 
         <!-- Effect Presets Grid/Chips -->
         <TextView

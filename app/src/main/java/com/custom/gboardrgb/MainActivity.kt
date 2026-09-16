@@ -1,5 +1,6 @@
 package com.custom.gboardrgb
 
+import android.graphics.Color
 import android.os.Bundle
 import android.view.MotionEvent
 import android.widget.FrameLayout
@@ -17,6 +18,11 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvSizeLabel: TextView
     private lateinit var chipGroup: ChipGroup
     private lateinit var switchAmbientRain: MaterialSwitch
+    private lateinit var switchTurboDynamics: MaterialSwitch
+    private lateinit var switchGlideTrail: MaterialSwitch
+    private lateinit var switchHaptic: MaterialSwitch
+    private lateinit var switchCustomColors: MaterialSwitch
+    private lateinit var chipGroupSwatches: ChipGroup
 
     private var currentSettings = ConfigManager.Settings()
 
@@ -30,11 +36,17 @@ class MainActivity : AppCompatActivity() {
         tvSizeLabel = findViewById(R.id.tvSizeLabel)
         chipGroup = findViewById(R.id.chipGroupEffects)
         switchAmbientRain = findViewById(R.id.switchAmbientRain)
+        switchTurboDynamics = findViewById(R.id.switchTurboDynamics)
+        switchGlideTrail = findViewById(R.id.switchGlideTrail)
+        switchHaptic = findViewById(R.id.switchHaptic)
+        switchCustomColors = findViewById(R.id.switchCustomColors)
+        chipGroupSwatches = findViewById(R.id.chipGroupSwatches)
 
         setupPreviewCanvas()
         setupChips()
         setupSliders()
-        setupAmbientSwitch()
+        setupSwitches()
+        setupSwatches()
     }
 
     private fun setupPreviewCanvas() {
@@ -49,25 +61,103 @@ class MainActivity : AppCompatActivity() {
             speedMultiplier = currentSettings.speedMultiplier
             sizeMultiplier = currentSettings.sizeMultiplier
             isAmbientRainEnabled = currentSettings.isAmbientRainEnabled
+            useCustomColors = currentSettings.useCustomColors
+            isTurboDynamicsEnabled = currentSettings.isTurboDynamicsEnabled
+            isGlideTrailEnabled = currentSettings.isGlideTrailEnabled
+
+            try {
+                customColorPrimary = Color.parseColor(currentSettings.colorPrimary)
+                customColorSecondary = Color.parseColor(currentSettings.colorSecondary)
+            } catch (e: Exception) {
+                // Default
+            }
         }
         previewContainer.addView(previewOverlay)
 
         previewContainer.setOnTouchListener { _, event ->
             val action = event.actionMasked
-            if (action == MotionEvent.ACTION_DOWN || action == MotionEvent.ACTION_POINTER_DOWN) {
-                val idx = if (action == MotionEvent.ACTION_POINTER_DOWN) event.actionIndex else 0
-                previewOverlay.spawnRipple(event.getX(idx), event.getY(idx))
+            when (action) {
+                MotionEvent.ACTION_DOWN, MotionEvent.ACTION_POINTER_DOWN -> {
+                    val idx = if (action == MotionEvent.ACTION_POINTER_DOWN) event.actionIndex else 0
+                    previewOverlay.spawnRipple(event.getX(idx), event.getY(idx))
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    previewOverlay.addGlidePoint(event.x, event.y)
+                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    previewOverlay.finishGlide()
+                }
             }
             true
         }
     }
 
-    private fun setupAmbientSwitch() {
+    private fun setupSwitches() {
         switchAmbientRain.isChecked = currentSettings.isAmbientRainEnabled
         switchAmbientRain.setOnCheckedChangeListener { _, isChecked ->
             currentSettings.isAmbientRainEnabled = isChecked
             previewOverlay.isAmbientRainEnabled = isChecked
             ConfigManager.saveSettings(this, currentSettings)
+        }
+
+        switchTurboDynamics.isChecked = currentSettings.isTurboDynamicsEnabled
+        switchTurboDynamics.setOnCheckedChangeListener { _, isChecked ->
+            currentSettings.isTurboDynamicsEnabled = isChecked
+            previewOverlay.isTurboDynamicsEnabled = isChecked
+            ConfigManager.saveSettings(this, currentSettings)
+        }
+
+        switchGlideTrail.isChecked = currentSettings.isGlideTrailEnabled
+        switchGlideTrail.setOnCheckedChangeListener { _, isChecked ->
+            currentSettings.isGlideTrailEnabled = isChecked
+            previewOverlay.isGlideTrailEnabled = isChecked
+            ConfigManager.saveSettings(this, currentSettings)
+        }
+
+        switchHaptic.isChecked = currentSettings.isHapticEnabled
+        switchHaptic.setOnCheckedChangeListener { _, isChecked ->
+            currentSettings.isHapticEnabled = isChecked
+            ConfigManager.saveSettings(this, currentSettings)
+        }
+
+        switchCustomColors.isChecked = currentSettings.useCustomColors
+        switchCustomColors.setOnCheckedChangeListener { _, isChecked ->
+            currentSettings.useCustomColors = isChecked
+            previewOverlay.useCustomColors = isChecked
+            ConfigManager.saveSettings(this, currentSettings)
+            previewOverlay.post {
+                previewOverlay.spawnRipple(previewOverlay.width / 2f, previewOverlay.height / 2f)
+            }
+        }
+    }
+
+    private fun setupSwatches() {
+        val swatchMap = mapOf(
+            R.id.chipSwatchNothing to Pair("#FF0033", "#FFFFFF"),
+            R.id.chipSwatchCyberpunk to Pair("#FFE600", "#00FFF5"),
+            R.id.chipSwatchDracula to Pair("#BD93F9", "#50FA7B"),
+            R.id.chipSwatchSunset to Pair("#FF5E3A", "#FF2A68"),
+            R.id.chipSwatchIce to Pair("#00F5FF", "#FFFFFF")
+        )
+
+        chipGroupSwatches.setOnCheckedStateChangeListener { _, checkedIds ->
+            val selectedId = checkedIds.firstOrNull() ?: return@setOnCheckedStateChangeListener
+            val colors = swatchMap[selectedId] ?: return@setOnCheckedStateChangeListener
+
+            currentSettings.useCustomColors = true
+            currentSettings.colorPrimary = colors.first
+            currentSettings.colorSecondary = colors.second
+
+            switchCustomColors.isChecked = true
+            previewOverlay.useCustomColors = true
+            previewOverlay.customColorPrimary = Color.parseColor(colors.first)
+            previewOverlay.customColorSecondary = Color.parseColor(colors.second)
+
+            ConfigManager.saveSettings(this, currentSettings)
+
+            previewOverlay.post {
+                previewOverlay.spawnRipple(previewOverlay.width / 2f, previewOverlay.height / 2f)
+            }
         }
     }
 
