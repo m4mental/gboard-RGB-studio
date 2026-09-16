@@ -1,0 +1,89 @@
+name: Build & Release APK
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build Release APK
+        run: ./gradlew assembleRelease --stacktrace
+
+      - name: Prepare Release Artifacts & Notes
+        id: prepare_release
+        run: |
+          VERSION_TAG="v1.0.${{ github.run_number }}"
+          echo "tag_name=$VERSION_TAG" >> "$GITHUB_OUTPUT"
+          
+          # Rename APK to a clean user-friendly filename
+          APK_SOURCE="app/build/outputs/apk/release/app-release.apk"
+          APK_TARGET="app/build/outputs/apk/release/GboardRGBStudio-${VERSION_TAG}.apk"
+          cp "$APK_SOURCE" "$APK_TARGET"
+          echo "apk_path=$APK_TARGET" >> "$GITHUB_OUTPUT"
+
+          # Extract commit subject and body
+          COMMIT_HASH=$(git log -1 --pretty=format:"%h")
+          COMMIT_AUTHOR=$(git log -1 --pretty=format:"%an")
+
+          cat << 'EOF' > release_notes.md
+          ## ⌨️ Gboard RGB Studio Release
+          
+          ### 📝 Commit Notes & Changes:
+          ```
+          EOF
+          git log -1 --pretty=format:"%B" >> release_notes.md
+          cat << 'EOF' >> release_notes.md
+          ```
+          
+          ---
+          
+          ### 📌 Build Details:
+          - **Commit:** HASH_PLACEHOLDER by **AUTHOR_PLACEHOLDER**
+          - **Release Tag:** TAG_PLACEHOLDER
+          - **Compiled with:** JDK 21 / Android Gradle Plugin 9.1.1
+          
+          ### 🚀 Quick Installation:
+          1. Download `GboardRGBStudio-TAG_PLACEHOLDER.apk` attached below.
+          2. Install or update the APK on your rooted Android device.
+          3. Ensure the module is enabled in **LSPosed** with **Gboard** in its scope.
+          4. Enjoy fluid RGB waves, 7 effect presets, and zero-restart live customization!
+          EOF
+          
+          sed -i "s/HASH_PLACEHOLDER/${COMMIT_HASH}/g" release_notes.md
+          sed -i "s/AUTHOR_PLACEHOLDER/${COMMIT_AUTHOR}/g" release_notes.md
+          sed -i "s/TAG_PLACEHOLDER/${VERSION_TAG}/g" release_notes.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.prepare_release.outputs.tag_name }}
+          name: "Gboard RGB Studio ${{ steps.prepare_release.outputs.tag_name }}"
+          body_path: release_notes.md
+          files: ${{ steps.prepare_release.outputs.apk_path }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
