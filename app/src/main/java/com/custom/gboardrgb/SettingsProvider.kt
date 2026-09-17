@@ -44,11 +44,12 @@ class SettingsProvider : ContentProvider() {
             val glide = bundle.getBoolean(ConfigManager.EXTRA_GLIDE_TRAIL, true)
             val haptic = bundle.getBoolean(ConfigManager.EXTRA_HAPTIC, true)
             val underglow = bundle.getBoolean(ConfigManager.EXTRA_UNDERGLOW, false)
+            val visualEffect = bundle.getBoolean(ConfigManager.EXTRA_VISUAL_EFFECT, true)
             val keyFlow = bundle.getBoolean(ConfigManager.EXTRA_KEY_SHAPE_FLOW, true)
             val borderOnly = bundle.getBoolean(ConfigManager.EXTRA_KEY_BORDER_ONLY, true)
             return ConfigManager.Settings(
                 EffectType.fromId(id), speed, size, ambient,
-                useCustom, colPrim, colSec, turbo, glide, haptic, underglow, keyFlow, borderOnly
+                useCustom, colPrim, colSec, turbo, glide, haptic, underglow, visualEffect, keyFlow, borderOnly
             )
         }
 
@@ -65,6 +66,7 @@ class SettingsProvider : ContentProvider() {
                 putBoolean(ConfigManager.EXTRA_GLIDE_TRAIL, settings.isGlideTrailEnabled)
                 putBoolean(ConfigManager.EXTRA_HAPTIC, settings.isHapticEnabled)
                 putBoolean(ConfigManager.EXTRA_UNDERGLOW, settings.isUnderglowEnabled)
+                putBoolean(ConfigManager.EXTRA_VISUAL_EFFECT, settings.isVisualEffectEnabled)
                 putBoolean(ConfigManager.EXTRA_KEY_SHAPE_FLOW, settings.isKeyShapeFlowEnabled)
                 putBoolean(ConfigManager.EXTRA_KEY_BORDER_ONLY, settings.isKeyBorderOnlyEnabled)
             }

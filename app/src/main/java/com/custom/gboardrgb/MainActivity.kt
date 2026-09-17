@@ -40,6 +40,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var switchGlideTrail: MaterialSwitch
     private lateinit var switchHaptic: MaterialSwitch
     private lateinit var switchUnderglow: MaterialSwitch
+    private lateinit var switchVisualEffect: MaterialSwitch
     private lateinit var switchKeyShapeFlow: MaterialSwitch
     private lateinit var switchKeyBorderOnly: MaterialSwitch
     private lateinit var switchCustomColors: MaterialSwitch
@@ -72,6 +73,7 @@ class MainActivity : AppCompatActivity() {
         switchGlideTrail = findViewById(R.id.switchGlideTrail)
         switchHaptic = findViewById(R.id.switchHaptic)
         switchUnderglow = findViewById(R.id.switchUnderglow)
+        switchVisualEffect = findViewById(R.id.switchVisualEffect)
         switchKeyShapeFlow = findViewById(R.id.switchKeyShapeFlow)
         switchKeyBorderOnly = findViewById(R.id.switchKeyBorderOnly)
         switchCustomColors = findViewById(R.id.switchCustomColors)
@@ -102,6 +104,7 @@ class MainActivity : AppCompatActivity() {
             isTurboDynamicsEnabled = currentSettings.isTurboDynamicsEnabled
             isGlideTrailEnabled = currentSettings.isGlideTrailEnabled
             isUnderglowEnabled = currentSettings.isUnderglowEnabled
+            isVisualEffectEnabled = currentSettings.isVisualEffectEnabled
             isKeyShapeFlowEnabled = currentSettings.isKeyShapeFlowEnabled
             isKeyBorderOnlyEnabled = currentSettings.isKeyBorderOnlyEnabled
 
@@ -165,6 +168,16 @@ class MainActivity : AppCompatActivity() {
             currentSettings.isUnderglowEnabled = isChecked
             previewOverlay.isUnderglowEnabled = isChecked
             ConfigManager.saveSettings(this, currentSettings)
+        }
+
+        switchVisualEffect.isChecked = currentSettings.isVisualEffectEnabled
+        switchVisualEffect.setOnCheckedChangeListener { _, isChecked ->
+            currentSettings.isVisualEffectEnabled = isChecked
+            previewOverlay.isVisualEffectEnabled = isChecked
+            ConfigManager.saveSettings(this, currentSettings)
+            previewOverlay.post {
+                previewOverlay.spawnRipple(previewOverlay.width / 2f, previewOverlay.height / 2f)
+            }
         }
 
         switchKeyShapeFlow.isChecked = currentSettings.isKeyShapeFlowEnabled
@@ -262,26 +275,34 @@ class MainActivity : AppCompatActivity() {
         val sliderSpeed = findViewById<Slider>(R.id.sliderSpeed)
         val sliderSize = findViewById<Slider>(R.id.sliderSize)
 
-        sliderSpeed.value = currentSettings.speedMultiplier.coerceIn(0.3f, 2.0f)
-        sliderSize.value = currentSettings.sizeMultiplier.coerceIn(0.3f, 1.5f)
+        sliderSpeed.isSaveEnabled = false
+        sliderSize.isSaveEnabled = false
 
-        updateSpeedLabel(sliderSpeed.value)
-        updateSizeLabel(sliderSize.value)
+        val speed = (kotlin.math.round(currentSettings.speedMultiplier * 10f) / 10f).coerceIn(0.3f, 2.0f)
+        val size = (kotlin.math.round(currentSettings.sizeMultiplier * 10f) / 10f).coerceIn(0.2f, 1.5f)
+
+        sliderSpeed.value = speed
+        sliderSize.value = size
+
+        updateSpeedLabel(speed)
+        updateSizeLabel(size)
 
         sliderSpeed.addOnChangeListener { _, value, fromUser ->
             if (fromUser) {
-                currentSettings.speedMultiplier = value
-                previewOverlay.speedMultiplier = value
-                updateSpeedLabel(value)
+                val cleanSpeed = (kotlin.math.round(value * 10f) / 10f).coerceIn(0.3f, 2.0f)
+                currentSettings.speedMultiplier = cleanSpeed
+                previewOverlay.speedMultiplier = cleanSpeed
+                updateSpeedLabel(cleanSpeed)
                 ConfigManager.saveSettings(this, currentSettings)
             }
         }
 
         sliderSize.addOnChangeListener { _, value, fromUser ->
             if (fromUser) {
-                currentSettings.sizeMultiplier = value
-                previewOverlay.sizeMultiplier = value
-                updateSizeLabel(value)
+                val cleanSize = (kotlin.math.round(value * 10f) / 10f).coerceIn(0.2f, 1.5f)
+                currentSettings.sizeMultiplier = cleanSize
+                previewOverlay.sizeMultiplier = cleanSize
+                updateSizeLabel(cleanSize)
                 ConfigManager.saveSettings(this, currentSettings)
             }
         }
@@ -299,6 +320,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun updateSizeLabel(size: Float) {
         val desc = when {
+            size <= 0.25f -> "Ultra-Tight / Neighbors Only"
             size <= 0.4f -> "Micro Keycap Glow"
             size <= 0.7f -> "Tight Key Glow"
             size >= 1.3f -> "Wide Reach"

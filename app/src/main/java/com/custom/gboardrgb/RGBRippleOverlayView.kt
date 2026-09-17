@@ -53,7 +53,14 @@ class RGBRippleOverlayView(context: Context) : View(context) {
     private var underglowPulseIntensity: Float = 0.0f
     private var lastUnderglowFrameTime: Long = 0L
 
-    // 5. Mechanical Key Matrix (Fluid travels through keycap shapes)
+    // 5. Visual Effect Presets (Canvas ripple, sparks, ambient splash)
+    var isVisualEffectEnabled: Boolean = true
+        set(value) {
+            field = value
+            invalidate()
+        }
+
+    // 6. Mechanical Key Matrix (Fluid travels through keycap shapes)
     var isKeyShapeFlowEnabled: Boolean = true
         set(value) {
             field = value
@@ -349,7 +356,7 @@ class RGBRippleOverlayView(context: Context) : View(context) {
     }
 
     fun spawnAmbientDrop() {
-        if (!isAmbientRainEnabled) return
+        if (!isAmbientRainEnabled || !isVisualEffectEnabled) return
 
         val kb = keyboardTargetRef?.get()
         val kbW = kb?.width?.toFloat() ?: (if (width > 0) width.toFloat() else 1080f)
@@ -371,6 +378,10 @@ class RGBRippleOverlayView(context: Context) : View(context) {
     }
 
     fun spawnRipple(touchX: Float, touchY: Float) {
+        if (!isVisualEffectEnabled && !isKeyShapeFlowEnabled) {
+            if (isUnderglowEnabled) pulseUnderglow()
+            return
+        }
         spawnEffectInternal(currentEffect, touchX, touchY, isMiniDrop = false)
     }
 
@@ -596,14 +607,25 @@ class RGBRippleOverlayView(context: Context) : View(context) {
                 continue
             }
 
-            when (fx.type) {
-                EffectType.WATER_DROP, EffectType.AMBIENT_RAIN -> drawFluidWater(canvas, fx, keycaps)
-                EffectType.NEON_LIGHTNING -> drawNeonLightning(canvas, fx)
-                EffectType.COSMIC_SUPERNOVA -> drawCosmicSupernova(canvas, fx)
-                EffectType.MOLTEN_MAGMA -> drawMoltenMagma(canvas, fx)
-                EffectType.SONIC_WAVE -> drawSonicWave(canvas, fx)
-                EffectType.BLACK_HOLE -> drawBlackHole(canvas, fx)
-                EffectType.RAZER_CHROMA -> drawRazerChroma(canvas, fx, keycaps)
+            // 1. Keycap Matrix Illumination (Cascades across key shapes)
+            if (isKeyShapeFlowEnabled && keycaps.isNotEmpty()) {
+                val energyFade = getEffectFade(p, 1.3f)
+                val baseR = p * fx.maxRadius
+                val palette = if (fx.type == EffectType.RAZER_CHROMA) getActiveChromaPalette() else getActiveLiquidPalette()
+                drawKeycapMatrixFlow(canvas, fx, keycaps, p, baseR, energyFade, palette)
+            }
+
+            // 2. Visual Effects Background Preset (Canvas water drops, particles, lightning arcs, etc.)
+            if (isVisualEffectEnabled) {
+                when (fx.type) {
+                    EffectType.WATER_DROP, EffectType.AMBIENT_RAIN -> drawFluidWaterBackground(canvas, fx)
+                    EffectType.NEON_LIGHTNING -> drawNeonLightning(canvas, fx)
+                    EffectType.COSMIC_SUPERNOVA -> drawCosmicSupernova(canvas, fx)
+                    EffectType.MOLTEN_MAGMA -> drawMoltenMagma(canvas, fx)
+                    EffectType.SONIC_WAVE -> drawSonicWave(canvas, fx)
+                    EffectType.BLACK_HOLE -> drawBlackHole(canvas, fx)
+                    EffectType.RAZER_CHROMA -> drawRazerChromaBackground(canvas, fx)
+                }
             }
         }
 
@@ -624,18 +646,13 @@ class RGBRippleOverlayView(context: Context) : View(context) {
         return (1.0f - progress).pow(exp)
     }
 
-    private fun drawFluidWater(canvas: Canvas, fx: ActiveEffect, keycaps: List<KeycapInfo>) {
+    private fun drawFluidWaterBackground(canvas: Canvas, fx: ActiveEffect) {
         val p = fx.progress
         val energyFade = getEffectFade(p, 1.3f)
         val baseR = p * fx.maxRadius
         val palette = getActiveLiquidPalette()
 
-        // 1. Mechanical Keycap Matrix Illumination (Fluid flowing through keycap shapes)
-        if (isKeyShapeFlowEnabled && keycaps.isNotEmpty()) {
-            drawKeycapMatrixFlow(canvas, fx, keycaps, p, baseR, energyFade, palette)
-        }
-
-        // 2. Continuous Organic Liquid Caustic Ripples
+        // Continuous Organic Liquid Caustic Ripples
         canvas.save()
         canvas.translate(fx.originX, fx.originY)
 
@@ -854,15 +871,11 @@ class RGBRippleOverlayView(context: Context) : View(context) {
     }
 
     // --- 7. Razer Chroma RGB Wave ---
-    private fun drawRazerChroma(canvas: Canvas, fx: ActiveEffect, keycaps: List<KeycapInfo>) {
+    private fun drawRazerChromaBackground(canvas: Canvas, fx: ActiveEffect) {
         val p = fx.progress
         val fade = getEffectFade(p, 1.4f)
         val r = p * fx.maxRadius
         val palette = getActiveChromaPalette()
-
-        if (isKeyShapeFlowEnabled && keycaps.isNotEmpty()) {
-            drawKeycapMatrixFlow(canvas, fx, keycaps, p, r, fade, palette)
-        }
 
         canvas.save()
         canvas.translate(fx.originX, fx.originY)
@@ -955,26 +968,13 @@ class RGBRippleOverlayView(context: Context) : View(context) {
 
             val keyRect = RectF(l + padL, t + padT, l + w - padR, t + h - padB)
 
-            // Detect exact corner radius from Gboard's theme drawable if available
-            var detectedRadius = 0f
-            try {
-                var d: Drawable? = bg
-                if (d is InsetDrawable) {
-                    d = d.drawable
-                }
-                if (d is RippleDrawable && d.numberOfLayers > 0) {
-                    d = d.getDrawable(0)
-                }
-                if (d is GradientDrawable) {
-                    detectedRadius = d.cornerRadius
-                }
-            } catch (ignored: Throwable) {}
+            val isRound = isRoundFunctionKey(view)
+            val extractedR = extractCornerRadius(bg, keyRect.width(), keyRect.height())
 
-            val radius = if (detectedRadius > 0f) {
-                detectedRadius
-            } else {
-                // Standard Gboard Material You squircle radius (~11dp to 12dp)
-                (11.5f * density).coerceIn(8f * density, 14f * density)
+            val radius = when {
+                isRound -> min(keyRect.width(), keyRect.height()) / 2f
+                extractedR > 0f -> extractedR
+                else -> (11.5f * density).coerceIn(8f * density, 14f * density)
             }
 
             outList.add(KeycapInfo(keyRect, radius))
@@ -986,6 +986,106 @@ class RGBRippleOverlayView(context: Context) : View(context) {
                 collectChildKeyViews(view.getChildAt(i), overlayLoc, outList)
             }
         }
+    }
+
+    private fun isRoundFunctionKey(view: View): Boolean {
+        val desc = view.contentDescription?.toString()?.lowercase() ?: ""
+        // Backspace, delete, shift, and caps lock are square squircle keys like letters.
+        // Only bottom-row function/action keys like ?123, symbols, enter, search, emoji are round pills.
+        if (desc.contains("shift") || desc.contains("caps") ||
+            desc.contains("delete") || desc.contains("backspace")) {
+            return false
+        }
+        if (desc.contains("123") || desc.contains("symbol") ||
+            desc.contains("enter") || desc.contains("search") ||
+            desc.contains("comma") || desc.contains("period") ||
+            desc.contains("emoji") || desc.contains("language") ||
+            desc.contains("switch")) {
+            return true
+        }
+        if (view is ViewGroup) {
+            for (i in 0 until view.childCount) {
+                val c = view.getChildAt(i)
+                val cDesc = c.contentDescription?.toString()?.lowercase() ?: ""
+                if (cDesc.contains("shift") || cDesc.contains("caps") ||
+                    cDesc.contains("delete") || cDesc.contains("backspace")) {
+                    return false
+                }
+                if (cDesc.contains("123") || cDesc.contains("symbol") ||
+                    cDesc.contains("enter") || cDesc.contains("search") ||
+                    cDesc.contains("comma") || cDesc.contains("period") ||
+                    cDesc.contains("emoji") || cDesc.contains("language") ||
+                    cDesc.contains("switch")) {
+                    return true
+                }
+                if (c is android.widget.TextView) {
+                    val txt = c.text?.toString() ?: ""
+                    if (txt.contains("123") || txt.contains("?#+") || txt.contains("!#1")) {
+                        return true
+                    }
+                }
+            }
+        }
+        return false
+    }
+
+    private fun extractCornerRadius(drawable: Drawable?, viewW: Float, viewH: Float): Float {
+        if (drawable == null) return 0f
+        var d: Drawable? = drawable
+        var depth = 0
+        while (d != null && depth < 6) {
+            depth++
+            when (d) {
+                is InsetDrawable -> d = d.drawable
+                is RippleDrawable -> {
+                    var maxR = 0f
+                    for (i in 0 until d.numberOfLayers) {
+                        val r = extractCornerRadius(d.getDrawable(i), viewW, viewH)
+                        if (r > maxR) maxR = r
+                    }
+                    val mask = d.findDrawableByLayerId(android.R.id.mask)
+                    val maskR = extractCornerRadius(mask, viewW, viewH)
+                    if (maskR > maxR) maxR = maskR
+                    return maxR
+                }
+                is LayerDrawable -> {
+                    var maxR = 0f
+                    for (i in 0 until d.numberOfLayers) {
+                        val r = extractCornerRadius(d.getDrawable(i), viewW, viewH)
+                        if (r > maxR) maxR = r
+                    }
+                    return maxR
+                }
+                is GradientDrawable -> {
+                    if (d.shape == GradientDrawable.OVAL || d.shape == GradientDrawable.RING) {
+                        return min(viewW, viewH) / 2f
+                    }
+                    val cr = d.cornerRadius
+                    if (cr > 0f) {
+                        if (cr >= min(viewW, viewH) / 2f - 6f * density) {
+                            return min(viewW, viewH) / 2f
+                        }
+                        return cr
+                    }
+                    try {
+                        val m = d.javaClass.getMethod("getCornerRadii")
+                        val radii = m.invoke(d) as? FloatArray
+                        if (radii != null && radii.isNotEmpty()) {
+                            val maxR = radii.maxOrNull() ?: 0f
+                            if (maxR > 0f) {
+                                if (maxR >= min(viewW, viewH) / 2f - 6f * density) {
+                                    return min(viewW, viewH) / 2f
+                                }
+                                return maxR
+                            }
+                        }
+                    } catch (ignored: Throwable) {}
+                    break
+                }
+                else -> break
+            }
+        }
+        return 0f
     }
 
     private fun normalizeKeycapRows(keycaps: MutableList<KeycapInfo>) {
@@ -1008,40 +1108,67 @@ class RGBRippleOverlayView(context: Context) : View(context) {
 
         // Sort rows vertically from top to bottom
         rows.sortBy { it[0].rect.centerY() }
+        val numRows = rows.size
 
-        // Filter for the main keyboard rows (typically letter rows and action row)
         for (rowIndex in rows.indices) {
             val row = rows[rowIndex]
-            if (row.size < 7) continue
+            if (row.isEmpty()) continue
             row.sortBy { it.rect.left }
-
-            val innerKeys = row.subList(1, row.size - 1)
-            val avgW = innerKeys.map { it.rect.width() }.average().toFloat()
-            val avgR = innerKeys.map { it.cornerRadius }.average().toFloat()
-            if (avgW <= 10f) continue
 
             val first = row.first()
             val last = row.last()
 
-            // Harmonize corner radius across all edge keys in the row
-            first.cornerRadius = avgR
-            last.cornerRadius = avgR
+            val isBottomRow = (rowIndex == numRows - 1)
+            val isShiftRow = (rowIndex == numRows - 2)
 
-            // Distinguish Row 1 (A..L, where edge keys are letter keys A and L)
-            // vs Row 2 (Shift, Z..M, Backspace, where edge keys are Shift and Backspace)
-            // In Row 2, the inner keys are exactly 7 keys (Z, X, C, V, B, N, M), so row.size == 9,
-            // AND edge keys are genuinely wide function keys (Shift and Backspace ~1.3x-1.6x avgW).
-            val isShiftBackspaceRow = (row.size == 9 && first.rect.width() > avgW * 1.30f && last.rect.width() > avgW * 1.30f)
+            if (isBottomRow) {
+                // First key is '?123' -> round / pill
+                first.cornerRadius = min(first.rect.width(), first.rect.height()) / 2f
+                // Last key is 'Enter' -> round / pill
+                last.cornerRadius = min(last.rect.width(), last.rect.height()) / 2f
 
-            if (!isShiftBackspaceRow && row.size in 8..10) {
-                // This is Row 1 (A..L): If first key ('A') is wider than inner keys due to bezel touch wrapper
-                if (first.rect.width() > avgW * 1.20f && first.rect.height() < avgW * 2.2f) {
-                    first.rect.left = first.rect.right - avgW
+                // In bottom row, all non-spacebar keys (comma, period, emoji) are also round pills
+                val maxKeyW = row.maxOfOrNull { it.rect.width() } ?: 0f
+                for (k in row) {
+                    if (k.rect.width() < maxKeyW * 0.55f) {
+                        k.cornerRadius = min(k.rect.width(), k.rect.height()) / 2f
+                    }
                 }
+                continue
+            }
 
-                // If last key ('L') is wider than inner keys due to bezel touch wrapper
-                if (last.rect.width() > avgW * 1.20f && last.rect.height() < avgW * 2.2f) {
-                    last.rect.right = last.rect.left + avgW
+            if (isShiftRow) {
+                // Shift (Caps Lock) and Backspace are SQUARE (squircle matching letter keys)
+                val innerKeys = if (row.size > 2) row.subList(1, row.size - 1) else row
+                val avgR = innerKeys.map { it.cornerRadius }.average().toFloat().let {
+                    if (it > 0f) it else 11.5f * density
+                }
+                // Both Shift, Backspace, and inner letter keys are square squircle
+                for (k in row) {
+                    k.cornerRadius = avgR
+                }
+                continue
+            }
+
+            // For regular letter rows (Row 0: Q..P, Row 1: A..L)
+            if (row.size >= 7) {
+                val innerKeys = row.subList(1, row.size - 1)
+                val avgW = innerKeys.map { it.rect.width() }.average().toFloat()
+                val avgR = innerKeys.map { it.cornerRadius }.average().toFloat()
+                if (avgW > 10f) {
+                    // Harmonize letter key radius across row
+                    first.cornerRadius = avgR
+                    last.cornerRadius = avgR
+
+                    // In Row 1 (A..L), normalize 'A' and 'L' width if bezel touch wrapper made them artificially wider
+                    if (row.size in 8..10) {
+                        if (first.rect.width() > avgW * 1.20f && first.rect.height() < avgW * 2.2f) {
+                            first.rect.left = first.rect.right - avgW
+                        }
+                        if (last.rect.width() > avgW * 1.20f && last.rect.height() < avgW * 2.2f) {
+                            last.rect.right = last.rect.left + avgW
+                        }
+                    }
                 }
             }
         }
@@ -1095,16 +1222,16 @@ class RGBRippleOverlayView(context: Context) : View(context) {
         val sideKeyW2 = ((totalW - paddingX * 2 - keyGap * 2) - letterKeysW) / 2f
 
         var currX2 = kbLeft + paddingX
-        // Shift key
-        outList.add(KeycapInfo(RectF(currX2, y2_1, currX2 + sideKeyW2, y2_2), 12f * density))
+        // Shift key -> square squircle (stdRadius)
+        outList.add(KeycapInfo(RectF(currX2, y2_1, currX2 + sideKeyW2, y2_2), stdRadius))
         currX2 += sideKeyW2 + keyGap
         // 7 Letters (Z..M)
         for (c in 0 until 7) {
             outList.add(KeycapInfo(RectF(currX2, y2_1, currX2 + stdKeyW, y2_2), stdRadius))
             currX2 += stdKeyW + keyGap
         }
-        // Backspace key
-        outList.add(KeycapInfo(RectF(currX2, y2_1, currX2 + sideKeyW2, y2_2), 12f * density))
+        // Backspace key -> square squircle (stdRadius)
+        outList.add(KeycapInfo(RectF(currX2, y2_1, currX2 + sideKeyW2, y2_2), stdRadius))
 
         // Row 3: Bottom action row (?123, comma, space, period, enter)
         val y3_1 = y2_1 + rowH + keyGap
@@ -1114,13 +1241,15 @@ class RGBRippleOverlayView(context: Context) : View(context) {
 
         var currX3 = kbLeft + paddingX
         for (k in 0..1) {
-            outList.add(KeycapInfo(RectF(currX3, y3_1, currX3 + sideKeyW3, y3_2), 10f * density))
+            // ?123 and comma -> round / pill
+            outList.add(KeycapInfo(RectF(currX3, y3_1, currX3 + sideKeyW3, y3_2), min(sideKeyW3, rowH) / 2f))
             currX3 += sideKeyW3 + keyGap
         }
         outList.add(KeycapInfo(RectF(currX3, y3_1, currX3 + spaceW, y3_2), 13f * density))
         currX3 += spaceW + keyGap
         for (k in 0..1) {
-            outList.add(KeycapInfo(RectF(currX3, y3_1, currX3 + sideKeyW3, y3_2), 10f * density))
+            // period and enter -> round / pill
+            outList.add(KeycapInfo(RectF(currX3, y3_1, currX3 + sideKeyW3, y3_2), min(sideKeyW3, rowH) / 2f))
             currX3 += sideKeyW3 + keyGap
         }
     }

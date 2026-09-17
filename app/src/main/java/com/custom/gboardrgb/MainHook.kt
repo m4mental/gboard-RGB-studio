@@ -316,6 +316,7 @@ class MainHook : IXposedHookLoadPackage {
                     val glide = intent.getBooleanExtra(ConfigManager.EXTRA_GLIDE_TRAIL, true)
                     val haptic = intent.getBooleanExtra(ConfigManager.EXTRA_HAPTIC, true)
                     val underglow = intent.getBooleanExtra(ConfigManager.EXTRA_UNDERGLOW, false)
+                    val visualEffect = intent.getBooleanExtra(ConfigManager.EXTRA_VISUAL_EFFECT, true)
                     val keyFlow = intent.getBooleanExtra(ConfigManager.EXTRA_KEY_SHAPE_FLOW, true)
                     val borderOnly = intent.getBooleanExtra(ConfigManager.EXTRA_KEY_BORDER_ONLY, true)
 
@@ -332,6 +333,7 @@ class MainHook : IXposedHookLoadPackage {
                     overlay.isTurboDynamicsEnabled = turbo
                     overlay.isGlideTrailEnabled = glide
                     overlay.isUnderglowEnabled = underglow
+                    overlay.isVisualEffectEnabled = visualEffect
                     overlay.isKeyShapeFlowEnabled = keyFlow
                     overlay.isKeyBorderOnlyEnabled = borderOnly
 
@@ -342,7 +344,7 @@ class MainHook : IXposedHookLoadPackage {
                         // Keep current
                     }
 
-                    XposedBridge.log("[$TAG] Real-time setting switch applied! customColors=$useCustom, turbo=$turbo, glide=$glide, haptic=$haptic, underglow=$underglow, keyFlow=$keyFlow, borderOnly=$borderOnly")
+                    XposedBridge.log("[$TAG] Real-time setting switch applied! customColors=$useCustom, turbo=$turbo, glide=$glide, haptic=$haptic, underglow=$underglow, visualEffect=$visualEffect, keyFlow=$keyFlow, borderOnly=$borderOnly")
                 }
             }
 
@@ -397,6 +399,7 @@ class MainHook : IXposedHookLoadPackage {
                 overlay.isTurboDynamicsEnabled = initialSettings.isTurboDynamicsEnabled
                 overlay.isGlideTrailEnabled = initialSettings.isGlideTrailEnabled
                 overlay.isUnderglowEnabled = initialSettings.isUnderglowEnabled
+                overlay.isVisualEffectEnabled = initialSettings.isVisualEffectEnabled
                 overlay.isKeyShapeFlowEnabled = initialSettings.isKeyShapeFlowEnabled
                 overlay.isKeyBorderOnlyEnabled = initialSettings.isKeyBorderOnlyEnabled
 

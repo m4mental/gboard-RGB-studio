@@ -19,6 +19,7 @@ object ConfigManager {
     const val EXTRA_GLIDE_TRAIL = "extra_glide_trail"
     const val EXTRA_HAPTIC = "extra_haptic"
     const val EXTRA_UNDERGLOW = "extra_underglow"
+    const val EXTRA_VISUAL_EFFECT = "extra_visual_effect"
     const val EXTRA_KEY_SHAPE_FLOW = "extra_key_shape_flow"
     const val EXTRA_KEY_BORDER_ONLY = "extra_key_border_only"
 
@@ -34,6 +35,7 @@ object ConfigManager {
     private const val KEY_GLIDE_TRAIL = "key_glide_trail"
     private const val KEY_HAPTIC = "key_haptic"
     private const val KEY_UNDERGLOW = "key_underglow"
+    private const val KEY_VISUAL_EFFECT = "key_visual_effect"
     private const val KEY_KEY_SHAPE_FLOW = "key_key_shape_flow"
     private const val KEY_KEY_BORDER_ONLY = "key_key_border_only"
 
@@ -56,6 +58,7 @@ object ConfigManager {
         var isGlideTrailEnabled: Boolean = true,
         var isHapticEnabled: Boolean = true,
         var isUnderglowEnabled: Boolean = false,
+        var isVisualEffectEnabled: Boolean = true,
         var isKeyShapeFlowEnabled: Boolean = true,
         var isKeyBorderOnlyEnabled: Boolean = true
     )
@@ -74,6 +77,7 @@ object ConfigManager {
             .putBoolean(KEY_GLIDE_TRAIL, settings.isGlideTrailEnabled)
             .putBoolean(KEY_HAPTIC, settings.isHapticEnabled)
             .putBoolean(KEY_UNDERGLOW, settings.isUnderglowEnabled)
+            .putBoolean(KEY_VISUAL_EFFECT, settings.isVisualEffectEnabled)
             .putBoolean(KEY_KEY_SHAPE_FLOW, settings.isKeyShapeFlowEnabled)
             .putBoolean(KEY_KEY_BORDER_ONLY, settings.isKeyBorderOnlyEnabled)
             .apply()
@@ -90,6 +94,7 @@ object ConfigManager {
             put("glide_trail", settings.isGlideTrailEnabled)
             put("haptic", settings.isHapticEnabled)
             put("underglow", settings.isUnderglowEnabled)
+            put("visual_effect", settings.isVisualEffectEnabled)
             put("key_shape_flow", settings.isKeyShapeFlowEnabled)
             put("key_border_only", settings.isKeyBorderOnlyEnabled)
         }.toString()
@@ -135,6 +140,7 @@ object ConfigManager {
             putExtra(EXTRA_GLIDE_TRAIL, settings.isGlideTrailEnabled)
             putExtra(EXTRA_HAPTIC, settings.isHapticEnabled)
             putExtra(EXTRA_UNDERGLOW, settings.isUnderglowEnabled)
+            putExtra(EXTRA_VISUAL_EFFECT, settings.isVisualEffectEnabled)
             putExtra(EXTRA_KEY_SHAPE_FLOW, settings.isKeyShapeFlowEnabled)
             putExtra(EXTRA_KEY_BORDER_ONLY, settings.isKeyBorderOnlyEnabled)
             `package` = GBOARD_PACKAGE
@@ -149,8 +155,8 @@ object ConfigManager {
                 try {
                     val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                     val id = prefs.getInt(KEY_EFFECT_ID, EffectType.WATER_DROP.id)
-                    val speed = prefs.getFloat(KEY_SPEED, 1.0f)
-                    val size = prefs.getFloat(KEY_SIZE, 1.0f)
+                    val speed = (kotlin.math.round(prefs.getFloat(KEY_SPEED, 1.0f) * 10f) / 10f).coerceIn(0.3f, 2.0f)
+                    val size = (kotlin.math.round(prefs.getFloat(KEY_SIZE, 1.0f) * 10f) / 10f).coerceIn(0.2f, 1.5f)
                     val ambient = prefs.getBoolean(KEY_AMBIENT_RAIN, false)
                     val useCustom = prefs.getBoolean(KEY_USE_CUSTOM_COLORS, false)
                     val colPrim = prefs.getString(KEY_COLOR_PRIMARY, "#00FFF5") ?: "#00FFF5"
@@ -159,11 +165,12 @@ object ConfigManager {
                     val glide = prefs.getBoolean(KEY_GLIDE_TRAIL, true)
                     val haptic = prefs.getBoolean(KEY_HAPTIC, true)
                     val underglow = prefs.getBoolean(KEY_UNDERGLOW, false)
+                    val visualEffect = prefs.getBoolean(KEY_VISUAL_EFFECT, true)
                     val keyFlow = prefs.getBoolean(KEY_KEY_SHAPE_FLOW, true)
                     val borderOnly = prefs.getBoolean(KEY_KEY_BORDER_ONLY, true)
                     return Settings(
                         EffectType.fromId(id), speed, size, ambient,
-                        useCustom, colPrim, colSec, turbo, glide, haptic, underglow, keyFlow, borderOnly
+                        useCustom, colPrim, colSec, turbo, glide, haptic, underglow, visualEffect, keyFlow, borderOnly
                     )
                 } catch (e: Exception) {
                     // Fallback
@@ -197,11 +204,12 @@ object ConfigManager {
                     val glide = json.optBoolean("glide_trail", true)
                     val haptic = json.optBoolean("haptic", true)
                     val underglow = json.optBoolean("underglow", false)
+                    val visualEffect = json.optBoolean("visual_effect", true)
                     val keyFlow = json.optBoolean("key_shape_flow", true)
                     val borderOnly = json.optBoolean("key_border_only", true)
                     return Settings(
                         EffectType.fromId(id), speed, size, ambient,
-                        useCustom, colPrim, colSec, turbo, glide, haptic, underglow, keyFlow, borderOnly
+                        useCustom, colPrim, colSec, turbo, glide, haptic, underglow, visualEffect, keyFlow, borderOnly
                     )
                 }
             } catch (e: Exception) {
