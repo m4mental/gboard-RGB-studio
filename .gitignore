@@ -12,3 +12,12 @@ app/build/
 build/
 *.hprof
 .cxx/
+
+# Root test & scratch artifacts
+/*.png
+/*.jpg
+/*.apk
+/*.dex
+/*.zip
+/*.sh
+/*.xml

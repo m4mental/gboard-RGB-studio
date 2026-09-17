@@ -3,6 +3,7 @@ package com.custom.gboardrgb
 import android.animation.ValueAnimator
 import android.content.Context
 import android.graphics.*
+import android.graphics.drawable.*
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
@@ -41,7 +42,7 @@ class RGBRippleOverlayView(context: Context) : View(context) {
     private var glideFadeAnimator: ValueAnimator? = null
 
     // 4. Perimeter Underglow (Mechanical Keyboard Edge Lighting)
-    var isUnderglowEnabled: Boolean = true
+    var isUnderglowEnabled: Boolean = false
         set(value) {
             field = value
             if (value) {
@@ -51,9 +52,24 @@ class RGBRippleOverlayView(context: Context) : View(context) {
         }
     private var underglowPulseIntensity: Float = 0.0f
     private var lastUnderglowFrameTime: Long = 0L
+
+    // 5. Mechanical Key Matrix (Fluid travels through keycap shapes)
+    var isKeyShapeFlowEnabled: Boolean = true
+        set(value) {
+            field = value
+            invalidate()
+        }
+
+    // 6. Mechanical Key Border Rim Only (Glow key outlines only, keep letters crisp & visible)
+    var isKeyBorderOnlyEnabled: Boolean = true
+        set(value) {
+            field = value
+            invalidate()
+        }
+
     private val density = context.resources.displayMetrics.density
 
-    var isAmbientRainEnabled: Boolean = true
+    var isAmbientRainEnabled: Boolean = false
         set(value) {
             field = value
             mainHandler.removeCallbacks(ambientRainRunnable)
@@ -199,6 +215,28 @@ class RGBRippleOverlayView(context: Context) : View(context) {
     private val underglowFillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.FILL
     }
+
+    // Mechanical Keycap Matrix Paints (Keycap outlines & interior luminescence)
+    private val keycapStrokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        strokeCap = Paint.Cap.ROUND
+        strokeJoin = Paint.Join.ROUND
+    }
+    private val keycapGlowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        strokeCap = Paint.Cap.ROUND
+        strokeJoin = Paint.Join.ROUND
+    }
+    private val keycapFillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.FILL
+    }
+
+    data class KeycapInfo(val rect: RectF, var cornerRadius: Float)
+    private val cachedKeycapRects = mutableListOf<KeycapInfo>()
+    private var lastKeyScanTime: Long = 0L
+    private var lastKbTargetHashCode: Int = 0
+    private val myScreenLoc = IntArray(2)
+    private val tempViewLoc = IntArray(2)
 
     private data class Particle(
         var x: Float, var y: Float,
@@ -549,6 +587,8 @@ class RGBRippleOverlayView(context: Context) : View(context) {
             drawGlideTrail(canvas)
         }
 
+        val keycaps = if (isKeyShapeFlowEnabled) getKeycapRects(kb, left, top, right, bottom) else emptyList()
+
         for (fx in activeEffects) {
             val p = fx.progress
             if (p >= 0.99f) {
@@ -557,13 +597,13 @@ class RGBRippleOverlayView(context: Context) : View(context) {
             }
 
             when (fx.type) {
-                EffectType.WATER_DROP, EffectType.AMBIENT_RAIN -> drawFluidWater(canvas, fx)
+                EffectType.WATER_DROP, EffectType.AMBIENT_RAIN -> drawFluidWater(canvas, fx, keycaps)
                 EffectType.NEON_LIGHTNING -> drawNeonLightning(canvas, fx)
                 EffectType.COSMIC_SUPERNOVA -> drawCosmicSupernova(canvas, fx)
                 EffectType.MOLTEN_MAGMA -> drawMoltenMagma(canvas, fx)
                 EffectType.SONIC_WAVE -> drawSonicWave(canvas, fx)
                 EffectType.BLACK_HOLE -> drawBlackHole(canvas, fx)
-                EffectType.RAZER_CHROMA -> drawRazerChroma(canvas, fx)
+                EffectType.RAZER_CHROMA -> drawRazerChroma(canvas, fx, keycaps)
             }
         }
 
@@ -584,15 +624,21 @@ class RGBRippleOverlayView(context: Context) : View(context) {
         return (1.0f - progress).pow(exp)
     }
 
-    private fun drawFluidWater(canvas: Canvas, fx: ActiveEffect) {
+    private fun drawFluidWater(canvas: Canvas, fx: ActiveEffect, keycaps: List<KeycapInfo>) {
         val p = fx.progress
         val energyFade = getEffectFade(p, 1.3f)
         val baseR = p * fx.maxRadius
+        val palette = getActiveLiquidPalette()
 
+        // 1. Mechanical Keycap Matrix Illumination (Fluid flowing through keycap shapes)
+        if (isKeyShapeFlowEnabled && keycaps.isNotEmpty()) {
+            drawKeycapMatrixFlow(canvas, fx, keycaps, p, baseR, energyFade, palette)
+        }
+
+        // 2. Continuous Organic Liquid Caustic Ripples
         canvas.save()
         canvas.translate(fx.originX, fx.originY)
 
-        val palette = getActiveLiquidPalette()
         val shader = SweepGradient(0f, 0f, palette, null)
         val mat = Matrix()
         mat.setRotate(p * 90f)
@@ -808,15 +854,19 @@ class RGBRippleOverlayView(context: Context) : View(context) {
     }
 
     // --- 7. Razer Chroma RGB Wave ---
-    private fun drawRazerChroma(canvas: Canvas, fx: ActiveEffect) {
+    private fun drawRazerChroma(canvas: Canvas, fx: ActiveEffect, keycaps: List<KeycapInfo>) {
         val p = fx.progress
         val fade = getEffectFade(p, 1.4f)
         val r = p * fx.maxRadius
+        val palette = getActiveChromaPalette()
+
+        if (isKeyShapeFlowEnabled && keycaps.isNotEmpty()) {
+            drawKeycapMatrixFlow(canvas, fx, keycaps, p, r, fade, palette)
+        }
 
         canvas.save()
         canvas.translate(fx.originX, fx.originY)
 
-        val palette = getActiveChromaPalette()
         val shader = SweepGradient(0f, 0f, palette, null)
         glowPaint.shader = shader
         glowPaint.strokeWidth = 36f * fade + 8f
@@ -834,6 +884,322 @@ class RGBRippleOverlayView(context: Context) : View(context) {
         }
 
         canvas.restore()
+    }
+
+    // --- Mechanical Keycap Discovery & Matrix Flow Methods ---
+    private fun getKeycapRects(kb: View?, kbLeft: Float, kbTop: Float, kbRight: Float, kbBottom: Float): List<KeycapInfo> {
+        val kbWidth = kbRight - kbLeft
+        val kbHeight = kbBottom - kbTop
+        if (kbWidth <= 10f || kbHeight <= 10f) return emptyList()
+
+        val now = SystemClock.uptimeMillis()
+        val targetHash = kb?.hashCode() ?: 0
+
+        if (cachedKeycapRects.isNotEmpty() && (now - lastKeyScanTime < 2500L) && targetHash == lastKbTargetHashCode) {
+            return cachedKeycapRects
+        }
+
+        cachedKeycapRects.clear()
+        lastKeyScanTime = now
+        lastKbTargetHashCode = targetHash
+
+        if (kb is ViewGroup) {
+            getLocationOnScreen(myScreenLoc)
+            collectChildKeyViews(kb, myScreenLoc, cachedKeycapRects)
+            normalizeKeycapRows(cachedKeycapRects)
+        }
+
+        // If native SoftKeyView hierarchy is absent (e.g. preview mode, virtualized Gboard canvas), generate realistic procedural keycaps
+        if (cachedKeycapRects.size < 8) {
+            cachedKeycapRects.clear()
+            generateProceduralKeyMatrix(kbLeft, kbTop, kbRight, kbBottom, cachedKeycapRects)
+        }
+
+        return cachedKeycapRects
+    }
+
+    private fun collectChildKeyViews(view: View, overlayLoc: IntArray, outList: MutableList<KeycapInfo>) {
+        if (!view.isShown || view.visibility != View.VISIBLE || view.width <= 0 || view.height <= 0) return
+        val name = view.javaClass.simpleName
+
+        val isExplicitContainer = name.contains("Keyboard") || name.contains("Holder") || name.contains("Container") ||
+                name.contains("Root") || name.contains("Decor") || name.contains("Panel") || name.contains("Strip")
+
+        val bg = view.background
+
+        // If a view has no visual background or is an explicit container, it cannot be a keycap button itself.
+        // Recurse into its children to find the actual styled keycaps (e.g. inner FrameLayout for A/L in Gboard).
+        if (bg == null || isExplicitContainer) {
+            if (view is ViewGroup) {
+                for (i in 0 until view.childCount) {
+                    collectChildKeyViews(view.getChildAt(i), overlayLoc, outList)
+                }
+            }
+            return
+        }
+
+        view.getLocationOnScreen(tempViewLoc)
+        val l = (tempViewLoc[0] - overlayLoc[0]).toFloat()
+        val t = (tempViewLoc[1] - overlayLoc[1]).toFloat()
+        val w = view.width.toFloat()
+        val h = view.height.toFloat()
+
+        // Filter for genuine key dimensions (exclude huge backgrounds or zero-size spacers)
+        if (w >= 18f * density && w <= 320f * density && h >= 22f * density && h <= 130f * density) {
+            // In Gboard, view padding defines the exact visual keycap boundary inside the touch cell.
+            // Bottom padding (e.g. 37px) separates rows, so subtracting it aligns the rect exactly with the visible button!
+            val padL = view.paddingLeft.toFloat().coerceAtLeast(1.5f * density)
+            val padT = view.paddingTop.toFloat().coerceAtLeast(1.5f * density)
+            val padR = view.paddingRight.toFloat().coerceAtLeast(1.5f * density)
+            val padB = view.paddingBottom.toFloat().coerceAtLeast(1.5f * density)
+
+            val keyRect = RectF(l + padL, t + padT, l + w - padR, t + h - padB)
+
+            // Detect exact corner radius from Gboard's theme drawable if available
+            var detectedRadius = 0f
+            try {
+                var d: Drawable? = bg
+                if (d is InsetDrawable) {
+                    d = d.drawable
+                }
+                if (d is RippleDrawable && d.numberOfLayers > 0) {
+                    d = d.getDrawable(0)
+                }
+                if (d is GradientDrawable) {
+                    detectedRadius = d.cornerRadius
+                }
+            } catch (ignored: Throwable) {}
+
+            val radius = if (detectedRadius > 0f) {
+                detectedRadius
+            } else {
+                // Standard Gboard Material You squircle radius (~11dp to 12dp)
+                (11.5f * density).coerceIn(8f * density, 14f * density)
+            }
+
+            outList.add(KeycapInfo(keyRect, radius))
+            return
+        }
+
+        if (view is ViewGroup) {
+            for (i in 0 until view.childCount) {
+                collectChildKeyViews(view.getChildAt(i), overlayLoc, outList)
+            }
+        }
+    }
+
+    private fun normalizeKeycapRows(keycaps: MutableList<KeycapInfo>) {
+        if (keycaps.size < 10) return
+
+        // 1. Group keycaps by row (similar centerY within 14dp)
+        val rows = mutableListOf<MutableList<KeycapInfo>>()
+        val sorted = keycaps.sortedBy { it.rect.centerY() }
+
+        for (k in sorted) {
+            val matchingRow = rows.find { row ->
+                abs(row[0].rect.centerY() - k.rect.centerY()) < 14f * density
+            }
+            if (matchingRow != null) {
+                matchingRow.add(k)
+            } else {
+                rows.add(mutableListOf(k))
+            }
+        }
+
+        // Sort rows vertically from top to bottom
+        rows.sortBy { it[0].rect.centerY() }
+
+        // Filter for the main keyboard rows (typically letter rows and action row)
+        for (rowIndex in rows.indices) {
+            val row = rows[rowIndex]
+            if (row.size < 7) continue
+            row.sortBy { it.rect.left }
+
+            val innerKeys = row.subList(1, row.size - 1)
+            val avgW = innerKeys.map { it.rect.width() }.average().toFloat()
+            val avgR = innerKeys.map { it.cornerRadius }.average().toFloat()
+            if (avgW <= 10f) continue
+
+            val first = row.first()
+            val last = row.last()
+
+            // Harmonize corner radius across all edge keys in the row
+            first.cornerRadius = avgR
+            last.cornerRadius = avgR
+
+            // Distinguish Row 1 (A..L, where edge keys are letter keys A and L)
+            // vs Row 2 (Shift, Z..M, Backspace, where edge keys are Shift and Backspace)
+            // In Row 2, the inner keys are exactly 7 keys (Z, X, C, V, B, N, M), so row.size == 9,
+            // AND edge keys are genuinely wide function keys (Shift and Backspace ~1.3x-1.6x avgW).
+            val isShiftBackspaceRow = (row.size == 9 && first.rect.width() > avgW * 1.30f && last.rect.width() > avgW * 1.30f)
+
+            if (!isShiftBackspaceRow && row.size in 8..10) {
+                // This is Row 1 (A..L): If first key ('A') is wider than inner keys due to bezel touch wrapper
+                if (first.rect.width() > avgW * 1.20f && first.rect.height() < avgW * 2.2f) {
+                    first.rect.left = first.rect.right - avgW
+                }
+
+                // If last key ('L') is wider than inner keys due to bezel touch wrapper
+                if (last.rect.width() > avgW * 1.20f && last.rect.height() < avgW * 2.2f) {
+                    last.rect.right = last.rect.left + avgW
+                }
+            }
+        }
+    }
+
+    private fun generateProceduralKeyMatrix(
+        kbLeft: Float, kbTop: Float, kbRight: Float, kbBottom: Float,
+        outList: MutableList<KeycapInfo>
+    ) {
+        val totalW = kbRight - kbLeft
+        val totalH = kbBottom - kbTop
+        if (totalW < 60f || totalH < 50f) return
+
+        val headerOffset = if (totalH > 180f * density) 44f * density else 0f
+        val actualTop = kbTop + headerOffset
+        val actualH = totalH - headerOffset
+
+        val paddingX = 4f * density
+        val paddingY = 6f * density
+        val keyGap = 3.5f * density
+        val rows = 4
+        val rowH = (actualH - paddingY * 2 - keyGap * (rows - 1)) / rows
+        if (rowH <= 5f) return
+
+        val stdKeyW = (totalW - paddingX * 2 - keyGap * 9) / 10f
+        val stdRadius = 11f * density
+
+        // Row 0: Q W E R T Y U I O P (10 keys)
+        val y0_1 = actualTop + paddingY
+        val y0_2 = y0_1 + rowH
+        var currX0 = kbLeft + paddingX
+        for (c in 0 until 10) {
+            outList.add(KeycapInfo(RectF(currX0, y0_1, currX0 + stdKeyW, y0_2), stdRadius))
+            currX0 += stdKeyW + keyGap
+        }
+
+        // Row 1 (Center line): A S D F G H J K L (9 keys, exactly matching stdKeyW, centered)
+        val y1_1 = y0_1 + rowH + keyGap
+        val y1_2 = y1_1 + rowH
+        val row1Indent = paddingX + (stdKeyW + keyGap) / 2f
+        var currX1 = kbLeft + row1Indent
+        for (c in 0 until 9) {
+            outList.add(KeycapInfo(RectF(currX1, y1_1, currX1 + stdKeyW, y1_2), stdRadius))
+            currX1 += stdKeyW + keyGap
+        }
+
+        // Row 2: Shift, Z X C V B N M, Backspace
+        val y2_1 = y1_1 + rowH + keyGap
+        val y2_2 = y2_1 + rowH
+        val letterKeysW = stdKeyW * 7 + keyGap * 6
+        val sideKeyW2 = ((totalW - paddingX * 2 - keyGap * 2) - letterKeysW) / 2f
+
+        var currX2 = kbLeft + paddingX
+        // Shift key
+        outList.add(KeycapInfo(RectF(currX2, y2_1, currX2 + sideKeyW2, y2_2), 12f * density))
+        currX2 += sideKeyW2 + keyGap
+        // 7 Letters (Z..M)
+        for (c in 0 until 7) {
+            outList.add(KeycapInfo(RectF(currX2, y2_1, currX2 + stdKeyW, y2_2), stdRadius))
+            currX2 += stdKeyW + keyGap
+        }
+        // Backspace key
+        outList.add(KeycapInfo(RectF(currX2, y2_1, currX2 + sideKeyW2, y2_2), 12f * density))
+
+        // Row 3: Bottom action row (?123, comma, space, period, enter)
+        val y3_1 = y2_1 + rowH + keyGap
+        val y3_2 = y3_1 + rowH
+        val spaceW = stdKeyW * 4.2f
+        val sideKeyW3 = (totalW - paddingX * 2 - spaceW - keyGap * 4) / 4f
+
+        var currX3 = kbLeft + paddingX
+        for (k in 0..1) {
+            outList.add(KeycapInfo(RectF(currX3, y3_1, currX3 + sideKeyW3, y3_2), 10f * density))
+            currX3 += sideKeyW3 + keyGap
+        }
+        outList.add(KeycapInfo(RectF(currX3, y3_1, currX3 + spaceW, y3_2), 13f * density))
+        currX3 += spaceW + keyGap
+        for (k in 0..1) {
+            outList.add(KeycapInfo(RectF(currX3, y3_1, currX3 + sideKeyW3, y3_2), 10f * density))
+            currX3 += sideKeyW3 + keyGap
+        }
+    }
+
+    private fun drawKeycapMatrixFlow(
+        canvas: Canvas,
+        fx: ActiveEffect,
+        keycaps: List<KeycapInfo>,
+        progress: Float,
+        waveRadius: Float,
+        energyFade: Float,
+        palette: IntArray
+    ) {
+        val waveBand = 46f * density
+
+        for (key in keycaps) {
+            val rect = key.rect
+            val r = key.cornerRadius
+            val cx = rect.centerX()
+            val cy = rect.centerY()
+            val dist = hypot(cx - fx.originX, cy - fx.originY)
+
+            val diff = abs(dist - waveRadius)
+            val isOriginKey = (dist < 26f * density && progress < 0.35f)
+
+            if (diff < waveBand || isOriginKey) {
+                val waveFactor = if (diff < waveBand) {
+                    (1.0f - diff / waveBand).pow(1.5f)
+                } else 0f
+
+                val tapFactor = if (isOriginKey) {
+                    (1.0f - (progress / 0.35f)).pow(1.2f)
+                } else 0f
+
+                val intensity = max(waveFactor, tapFactor) * energyFade
+                if (intensity <= 0.03f) continue
+
+                val angle = atan2(cy - fx.originY, cx - fx.originX)
+                val normAngle = ((angle + Math.PI) / (2 * Math.PI)).toFloat().coerceIn(0f, 1f)
+                val keyColor = interpolateColorFromPalette(palette, normAngle)
+
+                // 1. Soft liquid glow inside the keycap (disabled when Border Rim Only mode is active)
+                if (!isKeyBorderOnlyEnabled) {
+                    keycapFillPaint.color = keyColor
+                    keycapFillPaint.alpha = (intensity * 115).toInt().coerceIn(0, 255)
+                    canvas.drawRoundRect(rect, r, r, keycapFillPaint)
+                }
+
+                // 2. Mechanical keycap border aura glow
+                keycapGlowPaint.color = keyColor
+                keycapGlowPaint.strokeWidth = (4.5f * density) * intensity + 1.5f
+                keycapGlowPaint.alpha = (intensity * 140).toInt().coerceIn(0, 255)
+                canvas.drawRoundRect(rect, r, r, keycapGlowPaint)
+
+                // 3. Sharp mechanical rim edge lighting
+                keycapStrokePaint.color = keyColor
+                keycapStrokePaint.strokeWidth = (1.8f * density) * intensity + 0.8f
+                keycapStrokePaint.alpha = (intensity * 255).toInt().coerceIn(0, 255)
+                canvas.drawRoundRect(rect, r, r, keycapStrokePaint)
+            }
+        }
+    }
+
+    private fun interpolateColorFromPalette(palette: IntArray, position: Float): Int {
+        if (palette.isEmpty()) return Color.WHITE
+        if (palette.size == 1) return palette[0]
+        val clampedPos = position.coerceIn(0f, 1f)
+        val scaled = clampedPos * (palette.size - 1)
+        val index = scaled.toInt().coerceAtMost(palette.size - 2)
+        val fraction = scaled - index
+        val c1 = palette[index]
+        val c2 = palette[index + 1]
+
+        val a = (Color.alpha(c1) + fraction * (Color.alpha(c2) - Color.alpha(c1))).toInt()
+        val r = (Color.red(c1) + fraction * (Color.red(c2) - Color.red(c1))).toInt()
+        val g = (Color.green(c1) + fraction * (Color.green(c2) - Color.green(c1))).toInt()
+        val b = (Color.blue(c1) + fraction * (Color.blue(c2) - Color.blue(c1))).toInt()
+
+        return Color.argb(a, r, g, b)
     }
 
     fun pulseUnderglow() {

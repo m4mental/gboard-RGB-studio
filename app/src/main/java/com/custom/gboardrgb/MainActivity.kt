@@ -11,7 +11,25 @@ import com.google.android.material.chip.ChipGroup
 import com.google.android.material.materialswitch.MaterialSwitch
 import com.google.android.material.slider.Slider
 
+import android.view.View
+import android.widget.Toast
+import androidx.lifecycle.lifecycleScope
+import com.google.android.material.button.MaterialButton
+import com.google.android.material.tabs.TabLayout
+import kotlinx.coroutines.launch
+
 class MainActivity : AppCompatActivity() {
+
+    private lateinit var tabLayout: TabLayout
+    private lateinit var layoutRgbStudio: View
+    private lateinit var layoutThemes: View
+
+    private lateinit var tvActiveThemeStatus: TextView
+    private lateinit var switch3dBlackBorders: MaterialSwitch
+    private lateinit var btnApply3dBlack: MaterialButton
+    private lateinit var switch3dWhiteBorders: MaterialSwitch
+    private lateinit var btnApply3dWhite: MaterialButton
+    private lateinit var btnRestoreStock: MaterialButton
 
     private lateinit var previewOverlay: RGBRippleOverlayView
     private lateinit var tvSpeedLabel: TextView
@@ -22,6 +40,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var switchGlideTrail: MaterialSwitch
     private lateinit var switchHaptic: MaterialSwitch
     private lateinit var switchUnderglow: MaterialSwitch
+    private lateinit var switchKeyShapeFlow: MaterialSwitch
+    private lateinit var switchKeyBorderOnly: MaterialSwitch
     private lateinit var switchCustomColors: MaterialSwitch
     private lateinit var chipGroupSwatches: ChipGroup
 
@@ -33,6 +53,17 @@ class MainActivity : AppCompatActivity() {
 
         currentSettings = ConfigManager.loadSettings(this)
 
+        tabLayout = findViewById(R.id.tabLayout)
+        layoutRgbStudio = findViewById(R.id.layoutRgbStudio)
+        layoutThemes = findViewById(R.id.layoutThemes)
+
+        tvActiveThemeStatus = findViewById(R.id.tvActiveThemeStatus)
+        switch3dBlackBorders = findViewById(R.id.switch3dBlackBorders)
+        btnApply3dBlack = findViewById(R.id.btnApply3dBlack)
+        switch3dWhiteBorders = findViewById(R.id.switch3dWhiteBorders)
+        btnApply3dWhite = findViewById(R.id.btnApply3dWhite)
+        btnRestoreStock = findViewById(R.id.btnRestoreStock)
+
         tvSpeedLabel = findViewById(R.id.tvSpeedLabel)
         tvSizeLabel = findViewById(R.id.tvSizeLabel)
         chipGroup = findViewById(R.id.chipGroupEffects)
@@ -41,9 +72,13 @@ class MainActivity : AppCompatActivity() {
         switchGlideTrail = findViewById(R.id.switchGlideTrail)
         switchHaptic = findViewById(R.id.switchHaptic)
         switchUnderglow = findViewById(R.id.switchUnderglow)
+        switchKeyShapeFlow = findViewById(R.id.switchKeyShapeFlow)
+        switchKeyBorderOnly = findViewById(R.id.switchKeyBorderOnly)
         switchCustomColors = findViewById(R.id.switchCustomColors)
         chipGroupSwatches = findViewById(R.id.chipGroupSwatches)
 
+        setupTabs()
+        setupThemeControls()
         setupPreviewCanvas()
         setupChips()
         setupSliders()
@@ -67,6 +102,8 @@ class MainActivity : AppCompatActivity() {
             isTurboDynamicsEnabled = currentSettings.isTurboDynamicsEnabled
             isGlideTrailEnabled = currentSettings.isGlideTrailEnabled
             isUnderglowEnabled = currentSettings.isUnderglowEnabled
+            isKeyShapeFlowEnabled = currentSettings.isKeyShapeFlowEnabled
+            isKeyBorderOnlyEnabled = currentSettings.isKeyBorderOnlyEnabled
 
             try {
                 customColorPrimary = Color.parseColor(currentSettings.colorPrimary)
@@ -128,6 +165,26 @@ class MainActivity : AppCompatActivity() {
             currentSettings.isUnderglowEnabled = isChecked
             previewOverlay.isUnderglowEnabled = isChecked
             ConfigManager.saveSettings(this, currentSettings)
+        }
+
+        switchKeyShapeFlow.isChecked = currentSettings.isKeyShapeFlowEnabled
+        switchKeyShapeFlow.setOnCheckedChangeListener { _, isChecked ->
+            currentSettings.isKeyShapeFlowEnabled = isChecked
+            previewOverlay.isKeyShapeFlowEnabled = isChecked
+            ConfigManager.saveSettings(this, currentSettings)
+            previewOverlay.post {
+                previewOverlay.spawnRipple(previewOverlay.width / 2f, previewOverlay.height / 2f)
+            }
+        }
+
+        switchKeyBorderOnly.isChecked = currentSettings.isKeyBorderOnlyEnabled
+        switchKeyBorderOnly.setOnCheckedChangeListener { _, isChecked ->
+            currentSettings.isKeyBorderOnlyEnabled = isChecked
+            previewOverlay.isKeyBorderOnlyEnabled = isChecked
+            ConfigManager.saveSettings(this, currentSettings)
+            previewOverlay.post {
+                previewOverlay.spawnRipple(previewOverlay.width / 2f, previewOverlay.height / 2f)
+            }
         }
 
         switchCustomColors.isChecked = currentSettings.useCustomColors
@@ -248,5 +305,90 @@ class MainActivity : AppCompatActivity() {
             else -> "Full Keyboard"
         }
         tvSizeLabel.text = String.format("Wave Size: %.1fx (%s)", size, desc)
+    }
+
+    private fun setupTabs() {
+        tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
+            override fun onTabSelected(tab: TabLayout.Tab?) {
+                when (tab?.position) {
+                    0 -> {
+                        layoutRgbStudio.visibility = View.VISIBLE
+                        layoutThemes.visibility = View.GONE
+                    }
+                    1 -> {
+                        layoutRgbStudio.visibility = View.GONE
+                        layoutThemes.visibility = View.VISIBLE
+                        refreshActiveThemeDisplay()
+                    }
+                }
+            }
+            override fun onTabUnselected(tab: TabLayout.Tab?) {}
+            override fun onTabReselected(tab: TabLayout.Tab?) {}
+        })
+    }
+
+    private fun setupThemeControls() {
+        refreshActiveThemeDisplay()
+
+        btnApply3dBlack.setOnClickListener {
+            btnApply3dBlack.isEnabled = false
+            btnApply3dBlack.text = "⏳ Deploying 3D Black..."
+            lifecycleScope.launch {
+                val withBorders = switch3dBlackBorders.isChecked
+                val res = ThemeInstaller.applyTheme(this@MainActivity, "3D_Black.zip", withBorders)
+                btnApply3dBlack.isEnabled = true
+                btnApply3dBlack.text = "🚀 Apply 3D Black Theme"
+                if (res.isSuccess) {
+                    Toast.makeText(this@MainActivity, "🌑 3D Black Theme applied! Open Gboard.", Toast.LENGTH_LONG).show()
+                    refreshActiveThemeDisplay()
+                } else {
+                    Toast.makeText(this@MainActivity, "Failed: ${res.exceptionOrNull()?.message}", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+
+        btnApply3dWhite.setOnClickListener {
+            btnApply3dWhite.isEnabled = false
+            btnApply3dWhite.text = "⏳ Deploying 3D White..."
+            lifecycleScope.launch {
+                val withBorders = switch3dWhiteBorders.isChecked
+                val res = ThemeInstaller.applyTheme(this@MainActivity, "3D_White.zip", withBorders)
+                btnApply3dWhite.isEnabled = true
+                btnApply3dWhite.text = "Apply 3D White Theme"
+                if (res.isSuccess) {
+                    Toast.makeText(this@MainActivity, "⚪ 3D White Theme applied! Open Gboard.", Toast.LENGTH_LONG).show()
+                    refreshActiveThemeDisplay()
+                } else {
+                    Toast.makeText(this@MainActivity, "Failed: ${res.exceptionOrNull()?.message}", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+
+        btnRestoreStock.setOnClickListener {
+            btnRestoreStock.isEnabled = false
+            lifecycleScope.launch {
+                val res = ThemeInstaller.restoreDefaultTheme(this@MainActivity)
+                btnRestoreStock.isEnabled = true
+                if (res.isSuccess) {
+                    Toast.makeText(this@MainActivity, "🔄 Stock theme restored.", Toast.LENGTH_SHORT).show()
+                    refreshActiveThemeDisplay()
+                } else {
+                    Toast.makeText(this@MainActivity, "Failed: ${res.exceptionOrNull()?.message}", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
+    private fun refreshActiveThemeDisplay() {
+        lifecycleScope.launch {
+            val active = ThemeInstaller.getActiveThemeName()
+            val text = when {
+                active.contains("3D_Black", ignoreCase = true) -> "Current Theme: 🌑 3D Black Edition (Active)"
+                active.contains("3D_White", ignoreCase = true) -> "Current Theme: ⚪ 3D White Edition (Active)"
+                active.isNotBlank() -> "Current Theme: $active"
+                else -> "Current Theme: System Default / Stock"
+            }
+            tvActiveThemeStatus.text = text
+        }
     }
 }

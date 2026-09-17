@@ -26,9 +26,40 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="2dp"
-            android:text="7 Fluid &amp; Reactive Visual Effects (Real-Time Sync)"
+            android:text="7 Fluid &amp; Reactive Visual Effects &amp; 3D Themes"
             android:textColor="#888888"
             android:textSize="13sp" />
+
+        <!-- Navigation Tabs: RGB Studio vs 3D Themes -->
+        <com.google.android.material.tabs.TabLayout
+            android:id="@+id/tabLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:layout_marginBottom="4dp"
+            android:background="@drawable/input_box_bg"
+            app:tabIndicatorColor="@color/accent_cyan"
+            app:tabIndicatorHeight="3dp"
+            app:tabSelectedTextColor="@color/accent_cyan"
+            app:tabTextColor="#888888">
+
+            <com.google.android.material.tabs.TabItem
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="⚡ RGB Effects" />
+
+            <com.google.android.material.tabs.TabItem
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🎨 3D Themes" />
+        </com.google.android.material.tabs.TabLayout>
+
+        <!-- Container for RGB Effects Tab -->
+        <LinearLayout
+            android:id="@+id/layoutRgbStudio"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
 
         <!-- Live Interactive Preview Canvas -->
         <TextView
@@ -129,6 +160,26 @@
             android:textColor="@color/white"
             android:textSize="13sp"
             android:textStyle="bold" />
+
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/switchKeyShapeFlow"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="⌨️ Mechanical Key Matrix (Fluid travels through keycap shapes)"
+            android:textColor="@color/white"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/switchKeyBorderOnly"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="4dp"
+            android:text="🔲 Border Rim Only (Glow key outlines only, keep letters clear)"
+            android:textColor="#CCCCCC"
+            android:textSize="12sp" />
 
         <!-- Custom Dual-Tone Palette Section -->
         <com.google.android.material.materialswitch.MaterialSwitch
@@ -342,6 +393,168 @@
             android:text="💡 Tip: Settings sync to Gboard in REAL TIME! Tapping any preset or switch updates your keyboard instantly without restarting Gboard."
             android:textColor="#AAAAAA"
             android:textSize="12sp" />
+
+        </LinearLayout>
+        <!-- End of layoutRgbStudio -->
+
+        <!-- Container for 3D Themes Tab -->
+        <LinearLayout
+            android:id="@+id/layoutThemes"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="3D Keyboard Theme Engine"
+                android:textColor="@color/accent_cyan"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:layout_marginBottom="14dp"
+                android:text="1-Click Direct Gboard Theme Deployment (No external app needed)"
+                android:textColor="#888888"
+                android:textSize="13sp" />
+
+            <!-- Active Theme Status Banner -->
+            <TextView
+                android:id="@+id/tvActiveThemeStatus"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/input_box_bg"
+                android:padding="12dp"
+                android:text="Current Theme: Checking..."
+                android:textColor="#00FFCC"
+                android:textSize="13sp" />
+
+            <!-- 1. 3D Black Edition (Recommended) -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:background="@drawable/preview_box_bg"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🌑 3D Black Theme (Recommended)"
+                    android:textColor="@color/white"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="True OLED Pitch-Black mechanical style with 3D elevation depth and sharp bordered keycaps. Designed specifically to make RGB luminescence pop!"
+                    android:textColor="#AAAAAA"
+                    android:textSize="13sp" />
+
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/switch3dBlackBorders"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:checked="true"
+                    android:text="Enable 3D Key Borders (Recommended)"
+                    android:textColor="@color/white"
+                    android:textSize="14sp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnApply3dBlack"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:backgroundTint="@color/accent_cyan"
+                    android:text="🚀 Apply 3D Black Theme"
+                    android:textAllCaps="false"
+                    android:textColor="@color/black"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- 2. 3D White Edition -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:background="@drawable/preview_box_bg"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="⚪ 3D White Theme"
+                    android:textColor="@color/white"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="Clean frosted light aesthetic with subtle 3D key elevation and rounded mechanical keycap contours."
+                    android:textColor="#AAAAAA"
+                    android:textSize="13sp" />
+
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/switch3dWhiteBorders"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:checked="true"
+                    android:text="Enable 3D Key Borders"
+                    android:textColor="@color/white"
+                    android:textSize="14sp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnApply3dWhite"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:backgroundTint="#333333"
+                    android:text="Apply 3D White Theme"
+                    android:textAllCaps="false"
+                    android:textColor="@color/white"
+                    android:textSize="15sp" />
+            </LinearLayout>
+
+            <!-- 3. Restore Stock Theme -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnRestoreStock"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:backgroundTint="#222222"
+                android:text="🔄 Restore Stock Gboard Theme"
+                android:textAllCaps="false"
+                android:textColor="#FF6666"
+                android:textSize="14sp" />
+
+            <!-- Root Requirement Footnote -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="24dp"
+                android:background="#151515"
+                android:padding="12dp"
+                android:text="🛡️ Note: Theme installation uses direct Root (su) permission to configure Gboard files locally without needing Rboard Theme Manager or any separate app."
+                android:textColor="#888888"
+                android:textSize="12sp" />
+
+        </LinearLayout>
+        <!-- End of layoutThemes -->
 
     </LinearLayout>
 </androidx.core.widget.NestedScrollView>

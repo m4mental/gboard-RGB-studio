@@ -307,7 +307,7 @@ class MainHook : IXposedHookLoadPackage {
                     val effectId = intent.getIntExtra(ConfigManager.EXTRA_EFFECT_ID, 0)
                     val speed = intent.getFloatExtra(ConfigManager.EXTRA_SPEED, 1.0f)
                     val size = intent.getFloatExtra(ConfigManager.EXTRA_SIZE, 1.0f)
-                    val isAmbient = intent.getBooleanExtra(ConfigManager.EXTRA_AMBIENT_RAIN, true)
+                    val isAmbient = intent.getBooleanExtra(ConfigManager.EXTRA_AMBIENT_RAIN, false)
 
                     val useCustom = intent.getBooleanExtra(ConfigManager.EXTRA_USE_CUSTOM_COLORS, false)
                     val colPrimStr = intent.getStringExtra(ConfigManager.EXTRA_COLOR_PRIMARY) ?: "#00FFF5"
@@ -315,7 +315,9 @@ class MainHook : IXposedHookLoadPackage {
                     val turbo = intent.getBooleanExtra(ConfigManager.EXTRA_TURBO_DYNAMICS, true)
                     val glide = intent.getBooleanExtra(ConfigManager.EXTRA_GLIDE_TRAIL, true)
                     val haptic = intent.getBooleanExtra(ConfigManager.EXTRA_HAPTIC, true)
-                    val underglow = intent.getBooleanExtra(ConfigManager.EXTRA_UNDERGLOW, true)
+                    val underglow = intent.getBooleanExtra(ConfigManager.EXTRA_UNDERGLOW, false)
+                    val keyFlow = intent.getBooleanExtra(ConfigManager.EXTRA_KEY_SHAPE_FLOW, true)
+                    val borderOnly = intent.getBooleanExtra(ConfigManager.EXTRA_KEY_BORDER_ONLY, true)
 
                     isHapticEnabled = haptic
                     isTurboDynamicsEnabled = turbo
@@ -330,6 +332,8 @@ class MainHook : IXposedHookLoadPackage {
                     overlay.isTurboDynamicsEnabled = turbo
                     overlay.isGlideTrailEnabled = glide
                     overlay.isUnderglowEnabled = underglow
+                    overlay.isKeyShapeFlowEnabled = keyFlow
+                    overlay.isKeyBorderOnlyEnabled = borderOnly
 
                     try {
                         overlay.customColorPrimary = Color.parseColor(colPrimStr)
@@ -338,7 +342,7 @@ class MainHook : IXposedHookLoadPackage {
                         // Keep current
                     }
 
-                    XposedBridge.log("[$TAG] Real-time setting switch applied! customColors=$useCustom, turbo=$turbo, glide=$glide, haptic=$haptic, underglow=$underglow")
+                    XposedBridge.log("[$TAG] Real-time setting switch applied! customColors=$useCustom, turbo=$turbo, glide=$glide, haptic=$haptic, underglow=$underglow, keyFlow=$keyFlow, borderOnly=$borderOnly")
                 }
             }
 
@@ -384,7 +388,7 @@ class MainHook : IXposedHookLoadPackage {
                     )
                 }
 
-                val initialSettings = ConfigManager.loadSettings(null)
+                val initialSettings = ConfigManager.loadSettings(root.context)
                 overlay.currentEffect = initialSettings.effectType
                 overlay.speedMultiplier = initialSettings.speedMultiplier
                 overlay.sizeMultiplier = initialSettings.sizeMultiplier
@@ -393,6 +397,8 @@ class MainHook : IXposedHookLoadPackage {
                 overlay.isTurboDynamicsEnabled = initialSettings.isTurboDynamicsEnabled
                 overlay.isGlideTrailEnabled = initialSettings.isGlideTrailEnabled
                 overlay.isUnderglowEnabled = initialSettings.isUnderglowEnabled
+                overlay.isKeyShapeFlowEnabled = initialSettings.isKeyShapeFlowEnabled
+                overlay.isKeyBorderOnlyEnabled = initialSettings.isKeyBorderOnlyEnabled
 
                 try {
                     overlay.customColorPrimary = Color.parseColor(initialSettings.colorPrimary)
