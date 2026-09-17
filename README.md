@@ -19,6 +19,21 @@ All effects render inside a custom hardware-accelerated canvas overlay dynamical
   - Automatically color-synced with active procedural presets or custom dual-tone palettes.
   - Dedicated one-tap toggle switch in the companion app with zero-latency IPC broadcast synchronization.
 
+- ⌨️ **Keycap Matrix Flow & Authentic Shape Geometry:**
+  - Reactive luminescence cascades through physical keycap shapes across rows.
+  - Exact key shape recognition: **Caps Lock / Shift (`▲`)** and **Backspace (`⌫`)** are styled with authentic square squircles matching letter keys, while **`?123`** and **`Enter`** render as circular pills.
+  - **Keycap Border Rim Only** option: Restrict glowing light exclusively to the mechanical outer borders of keycaps.
+
+- 🎛️ **Independent Effect & Key Flow Toggles:**
+  - Dedicated switches for **Visual Effect Presets** and **Keycap Matrix Flow**.
+  - Run them individually or layer them together simultaneously for maximum visual impact.
+
+- 🎨 **Built-in 3D Mechanical Themes (Direct Root Engine):**
+  - **3D Pitch-Black OLED Edition:** True pitch-black AMOLED canvas with 3D elevated keycaps and crisp borders, built specifically to make RGB luminescence pop!
+  - **3D White Edition:** Frosted light aesthetic with subtle mechanical elevation.
+  - **Stock Theme Restore:** Instant one-tap restore back to default Gboard theme.
+  - Applies directly via Root (`su`) without needing Rboard Theme Manager.
+
 - 🪟 **Complete Floating & One-Handed Keyboard Mode Support:**
   - Full compatibility with Gboard's **Floating Mode** and **One-Handed Mode**.
   - Dynamic discovery of the active keyboard chassis (`KeyboardHolder`) with automatic hit-testing and real-time drag tracking across the screen.
@@ -34,7 +49,7 @@ All effects render inside a custom hardware-accelerated canvas overlay dynamical
   *(Bonus: 🌈 **Razer Chroma** classic mechanical rainbow wave).*
 
 - ⚡ **Zero-Restart Real-Time Synchronization:**
-  - Switch presets or adjust sliders in the companion app; updates broadcast instantly to Gboard in under 5ms without killing or restarting Gboard.
+  - Switch presets, themes, or adjust sliders in the companion app; updates broadcast instantly to Gboard in under 5ms without killing or restarting Gboard.
 
 - 🌊 **Multi-Touch Crossover Physics:**
   - Type at full speed with multiple fingers simultaneously — waves do not cancel each other; they collide, overlap, and blend seamlessly in the hardware framebuffer.
@@ -44,7 +59,7 @@ All effects render inside a custom hardware-accelerated canvas overlay dynamical
 
 - 🎛️ **Granular Precision Sliders:**
   - **Animation Speed:** Scalable from `0.3x` (*Ultra Slow-Mo Liquid Glide*) up to `2.0x` (*Snappy Fast*).
-  - **Wave Size / Reach:** Scalable from `0.3x` (*Micro Keycap Glow / Minimalist*) up to `1.5x` (*Full Keyboard Reach*).
+  - **Wave Size / Reach:** Scalable from `0.2x` (*Ultra-Tight / Neighbors Only*) up to `1.5x` (*Full Keyboard Reach*).
 
 - 🎨 **Custom Dual-Tone Palettes & Curated Swatches:**
   - One-tap switchable aesthetic presets: **Nothing OS** (Red/White), **Cyberpunk** (Yellow/Cyan), **Dracula** (Purple/Green), **Sunset** (Orange/Pink), and **Glacier Ice** (Cyan/White).
