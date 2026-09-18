@@ -307,6 +307,10 @@ class MainHook : IXposedHookLoadPackage {
                     val effectId = intent.getIntExtra(ConfigManager.EXTRA_EFFECT_ID, 0)
                     val speed = intent.getFloatExtra(ConfigManager.EXTRA_SPEED, 1.0f)
                     val size = intent.getFloatExtra(ConfigManager.EXTRA_SIZE, 1.0f)
+                    val waveSpeed = intent.getFloatExtra(ConfigManager.EXTRA_WAVE_SPEED, speed)
+                    val waveSize = intent.getFloatExtra(ConfigManager.EXTRA_WAVE_SIZE, size)
+                    val keyFlowSpeed = intent.getFloatExtra(ConfigManager.EXTRA_KEY_FLOW_SPEED, speed)
+                    val keyFlowSize = intent.getFloatExtra(ConfigManager.EXTRA_KEY_FLOW_SIZE, size)
                     val isAmbient = intent.getBooleanExtra(ConfigManager.EXTRA_AMBIENT_RAIN, false)
 
                     val useCustom = intent.getBooleanExtra(ConfigManager.EXTRA_USE_CUSTOM_COLORS, false)
@@ -326,8 +330,10 @@ class MainHook : IXposedHookLoadPackage {
 
                     val overlay = currentOverlayRef?.get() ?: return
                     overlay.currentEffect = EffectType.fromId(effectId)
-                    overlay.speedMultiplier = speed
-                    overlay.sizeMultiplier = size
+                    overlay.waveSpeedMultiplier = waveSpeed
+                    overlay.waveSizeMultiplier = waveSize
+                    overlay.keyFlowSpeedMultiplier = keyFlowSpeed
+                    overlay.keyFlowSizeMultiplier = keyFlowSize
                     overlay.isAmbientRainEnabled = isAmbient
                     overlay.useCustomColors = useCustom
                     overlay.isTurboDynamicsEnabled = turbo
@@ -344,7 +350,7 @@ class MainHook : IXposedHookLoadPackage {
                         // Keep current
                     }
 
-                    XposedBridge.log("[$TAG] Real-time setting switch applied! customColors=$useCustom, turbo=$turbo, glide=$glide, haptic=$haptic, underglow=$underglow, visualEffect=$visualEffect, keyFlow=$keyFlow, borderOnly=$borderOnly")
+                    XposedBridge.log("[$TAG] Real-time setting switch applied! waveSpeed=$waveSpeed, waveSize=$waveSize, keyFlowSpeed=$keyFlowSpeed, keyFlowSize=$keyFlowSize, customColors=$useCustom, turbo=$turbo, glide=$glide, haptic=$haptic, underglow=$underglow, visualEffect=$visualEffect, keyFlow=$keyFlow, borderOnly=$borderOnly")
                 }
             }
 
@@ -392,8 +398,10 @@ class MainHook : IXposedHookLoadPackage {
 
                 val initialSettings = ConfigManager.loadSettings(root.context)
                 overlay.currentEffect = initialSettings.effectType
-                overlay.speedMultiplier = initialSettings.speedMultiplier
-                overlay.sizeMultiplier = initialSettings.sizeMultiplier
+                overlay.waveSpeedMultiplier = initialSettings.waveSpeedMultiplier
+                overlay.waveSizeMultiplier = initialSettings.waveSizeMultiplier
+                overlay.keyFlowSpeedMultiplier = initialSettings.keyFlowSpeedMultiplier
+                overlay.keyFlowSizeMultiplier = initialSettings.keyFlowSizeMultiplier
                 overlay.isAmbientRainEnabled = initialSettings.isAmbientRainEnabled
                 overlay.useCustomColors = initialSettings.useCustomColors
                 overlay.isTurboDynamicsEnabled = initialSettings.isTurboDynamicsEnabled
@@ -429,8 +437,10 @@ class MainHook : IXposedHookLoadPackage {
                     root.post {
                         val activeOverlay = currentOverlayRef?.get() ?: return@post
                         activeOverlay.currentEffect = freshSettings.effectType
-                        activeOverlay.speedMultiplier = freshSettings.speedMultiplier
-                        activeOverlay.sizeMultiplier = freshSettings.sizeMultiplier
+                        activeOverlay.waveSpeedMultiplier = freshSettings.waveSpeedMultiplier
+                        activeOverlay.waveSizeMultiplier = freshSettings.waveSizeMultiplier
+                        activeOverlay.keyFlowSpeedMultiplier = freshSettings.keyFlowSpeedMultiplier
+                        activeOverlay.keyFlowSizeMultiplier = freshSettings.keyFlowSizeMultiplier
                         activeOverlay.isAmbientRainEnabled = freshSettings.isAmbientRainEnabled
                         activeOverlay.useCustomColors = freshSettings.useCustomColors
                         activeOverlay.isTurboDynamicsEnabled = freshSettings.isTurboDynamicsEnabled

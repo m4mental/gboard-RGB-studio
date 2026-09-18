@@ -90,14 +90,117 @@
                 <com.google.android.material.chip.Chip android:id="@+id/chipChroma" style="@style/Widget.Material3.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🌈 Razer Chroma" android:textColor="@color/white" app:chipBackgroundColor="@color/card_dark" />
             </com.google.android.material.chip.ChipGroup>
 
-            <!-- Sliders -->
-            <TextView android:id="@+id/tvSpeedLabel" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="20dp" android:text="Animation Speed: 1.0x (Normal)" android:textColor="@color/white" android:textSize="13sp" />
+            <!-- 1. Circular Wave (Visual Effect) Tuning Card -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:background="@drawable/preview_box_bg"
+                android:orientation="vertical"
+                android:padding="14dp">
 
-            <com.google.android.material.slider.Slider android:id="@+id/sliderSpeed" android:layout_width="match_parent" android:layout_height="wrap_content" android:value="1.0" android:valueFrom="0.3" android:valueTo="2.0" android:stepSize="0.1" android:saveEnabled="false" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🌊 Circular Wave Tuning (Visual Effects)"
+                    android:textColor="@color/accent_cyan"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
 
-            <TextView android:id="@+id/tvSizeLabel" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:text="Wave Size / Reach: 1.0x (Full)" android:textColor="@color/white" android:textSize="13sp" />
+                <TextView
+                    android:id="@+id/tvWaveSpeedLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:text="Wave Speed: 1.0x (Normal)"
+                    android:textColor="@color/white"
+                    android:textSize="13sp" />
 
-            <com.google.android.material.slider.Slider android:id="@+id/sliderSize" android:layout_width="match_parent" android:layout_height="wrap_content" android:value="1.0" android:valueFrom="0.2" android:valueTo="1.5" android:stepSize="0.1" android:saveEnabled="false" />
+                <com.google.android.material.slider.Slider
+                    android:id="@+id/sliderWaveSpeed"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:value="1.0"
+                    android:valueFrom="0.3"
+                    android:valueTo="2.0"
+                    android:stepSize="0.1"
+                    android:saveEnabled="false" />
+
+                <TextView
+                    android:id="@+id/tvWaveSizeLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="Wave Size / Reach: 1.0x (Full)"
+                    android:textColor="@color/white"
+                    android:textSize="13sp" />
+
+                <com.google.android.material.slider.Slider
+                    android:id="@+id/sliderWaveSize"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:value="1.0"
+                    android:valueFrom="0.2"
+                    android:valueTo="1.5"
+                    android:stepSize="0.1"
+                    android:saveEnabled="false" />
+            </LinearLayout>
+
+            <!-- 2. Keycap Matrix Flow Tuning Card -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:background="@drawable/preview_box_bg"
+                android:orientation="vertical"
+                android:padding="14dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="⌨️ Keycap Matrix Flow Tuning (Key Shape Glow)"
+                    android:textColor="@color/accent_cyan"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvKeyFlowSpeedLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:text="Key Glow Speed: 1.0x (Normal)"
+                    android:textColor="@color/white"
+                    android:textSize="13sp" />
+
+                <com.google.android.material.slider.Slider
+                    android:id="@+id/sliderKeyFlowSpeed"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:value="1.0"
+                    android:valueFrom="0.3"
+                    android:valueTo="2.0"
+                    android:stepSize="0.1"
+                    android:saveEnabled="false" />
+
+                <TextView
+                    android:id="@+id/tvKeyFlowSizeLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="Key Glow Spread: 1.0x (Full Keyboard)"
+                    android:textColor="@color/white"
+                    android:textSize="13sp" />
+
+                <com.google.android.material.slider.Slider
+                    android:id="@+id/sliderKeyFlowSize"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:value="1.0"
+                    android:valueFrom="0.2"
+                    android:valueTo="1.5"
+                    android:stepSize="0.1"
+                    android:saveEnabled="false" />
+            </LinearLayout>
 
             <!-- Info Tip -->
             <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:layout_marginBottom="24dp" android:background="#151515" android:padding="12dp" android:text="💡 Tip: Settings sync to Gboard in REAL TIME! Tapping any preset or switch updates your keyboard instantly without restarting Gboard." android:textColor="#AAAAAA" android:textSize="12sp" />

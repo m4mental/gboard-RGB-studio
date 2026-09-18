@@ -22,8 +22,24 @@ class RGBRippleOverlayView(context: Context) : View(context) {
     private var keyboardTargetRef: WeakReference<View>? = null
 
     var currentEffect: EffectType = EffectType.WATER_DROP
-    var speedMultiplier: Float = 1.0f
-    var sizeMultiplier: Float = 1.0f
+    var waveSpeedMultiplier: Float = 1.0f
+    var waveSizeMultiplier: Float = 1.0f
+    var keyFlowSpeedMultiplier: Float = 1.0f
+    var keyFlowSizeMultiplier: Float = 1.0f
+
+    var speedMultiplier: Float
+        get() = waveSpeedMultiplier
+        set(value) {
+            waveSpeedMultiplier = value
+            keyFlowSpeedMultiplier = value
+        }
+
+    var sizeMultiplier: Float
+        get() = waveSizeMultiplier
+        set(value) {
+            waveSizeMultiplier = value
+            keyFlowSizeMultiplier = value
+        }
 
     // 1. Custom Dual-Tone Colors
     var useCustomColors: Boolean = false
@@ -258,7 +274,11 @@ class RGBRippleOverlayView(context: Context) : View(context) {
         val originX: Float,
         val originY: Float,
         var progress: Float = 0f,
+        var waveProgress: Float = 0f,
+        var keyFlowProgress: Float = 0f,
         val maxRadius: Float,
+        val waveMaxRadius: Float = maxRadius,
+        val keyFlowMaxRadius: Float = maxRadius,
         val isMiniDrop: Boolean = false,
         val particles: List<Particle> = emptyList(),
         val lightningBolts: List<LightningBolt> = emptyList()
@@ -391,7 +411,8 @@ class RGBRippleOverlayView(context: Context) : View(context) {
         val kbH = target?.height?.toFloat() ?: (if (height > 0) height.toFloat() else 850f)
 
         val turbo = if (isTurboDynamicsEnabled && !isMiniDrop) turboFactor else 1.0f
-        val baseRadius = max(kbW, kbH) * (if (isMiniDrop) 0.38f else 0.95f) * sizeMultiplier * (1.0f + (turbo - 1.0f) * 0.22f)
+        val baseWaveRadius = max(kbW, kbH) * (if (isMiniDrop) 0.38f else 0.95f) * waveSizeMultiplier * (1.0f + (turbo - 1.0f) * 0.22f)
+        val baseKeyFlowRadius = max(kbW, kbH) * (if (isMiniDrop) 0.38f else 0.95f) * keyFlowSizeMultiplier * (1.0f + (turbo - 1.0f) * 0.22f)
 
         if (!isMiniDrop) {
             pulseUnderglow()
@@ -404,7 +425,7 @@ class RGBRippleOverlayView(context: Context) : View(context) {
         }
 
         val lightningBolts = when (effectType) {
-            EffectType.NEON_LIGHTNING -> generateLightningBolts(touchX, touchY, baseRadius * 0.75f, turbo)
+            EffectType.NEON_LIGHTNING -> generateLightningBolts(touchX, touchY, baseWaveRadius * 0.75f, turbo)
             else -> emptyList()
         }
 
@@ -413,7 +434,11 @@ class RGBRippleOverlayView(context: Context) : View(context) {
             originX = touchX,
             originY = touchY,
             progress = 0f,
-            maxRadius = baseRadius,
+            waveProgress = 0f,
+            keyFlowProgress = 0f,
+            maxRadius = baseWaveRadius,
+            waveMaxRadius = baseWaveRadius,
+            keyFlowMaxRadius = baseKeyFlowRadius,
             isMiniDrop = isMiniDrop,
             particles = particles,
             lightningBolts = lightningBolts
@@ -430,33 +455,52 @@ class RGBRippleOverlayView(context: Context) : View(context) {
             EffectType.WATER_DROP, EffectType.AMBIENT_RAIN -> if (isMiniDrop) 680L else 780L
         }
 
-        val finalDuration = if (speedMultiplier < 1.0f) {
-            // Power curve for true slow-motion distinction:
-            // 1.0x -> 780ms
-            // 0.7x -> 1380ms
-            // 0.5x -> 2370ms
-            // 0.3x -> 5380ms (dramatic 5.4s slow-mo!)
-            (baseDuration / speedMultiplier.toDouble().pow(1.6)).toLong()
-        } else {
-            (baseDuration / speedMultiplier.coerceIn(0.2f, 3.0f)).toLong()
+        fun calcDuration(base: Long, speedMult: Float): Long {
+            return if (speedMult < 1.0f) {
+                (base / speedMult.toDouble().pow(1.6)).toLong()
+            } else {
+                (base / speedMult.coerceIn(0.2f, 3.0f)).toLong()
+            }
         }
 
-        val interpolator = if (speedMultiplier < 0.8f) {
-            // Progressive gentle ease-out for slow-mo so wave travels steadily across the keyboard
-            val power = 1.15f + 1.25f * (speedMultiplier / 0.8f).coerceIn(0f, 1f)
-            Interpolator { t -> (1.0f - (1.0f - t).pow(power)) }
-        } else when (effectType) {
-            EffectType.WATER_DROP, EffectType.AMBIENT_RAIN -> fluidInterpolator
-            else -> decelerateInterpolator
+        val waveDuration = calcDuration(baseDuration, waveSpeedMultiplier)
+        val keyFlowDuration = calcDuration(baseDuration, keyFlowSpeedMultiplier)
+
+        val totalDuration = max(
+            if (isVisualEffectEnabled) waveDuration else 0L,
+            if (isKeyShapeFlowEnabled) keyFlowDuration else 0L
+        ).coerceAtLeast(100L)
+
+        fun getSpeedInterpolator(speedMult: Float): Interpolator {
+            return if (speedMult < 0.8f) {
+                val power = 1.15f + 1.25f * (speedMult / 0.8f).coerceIn(0f, 1f)
+                Interpolator { t -> (1.0f - (1.0f - t).pow(power)) }
+            } else when (effectType) {
+                EffectType.WATER_DROP, EffectType.AMBIENT_RAIN -> fluidInterpolator
+                else -> decelerateInterpolator
+            }
         }
+
+        val waveInterpolator = getSpeedInterpolator(waveSpeedMultiplier)
+        val keyFlowInterpolator = getSpeedInterpolator(keyFlowSpeedMultiplier)
 
         post {
             val animator = ValueAnimator.ofFloat(0f, 1f).apply {
-                duration = finalDuration
-                this.interpolator = interpolator
+                duration = totalDuration
+                this.interpolator = android.view.animation.LinearInterpolator()
                 addUpdateListener { anim ->
-                    effect.progress = anim.animatedValue as Float
-                    val drag = 1.0f - (0.055f * speedMultiplier.coerceIn(0.2f, 1.2f))
+                    val elapsed = anim.currentPlayTime
+                    val waveRaw = (elapsed.toFloat() / waveDuration.coerceAtLeast(1L)).coerceIn(0f, 1f)
+                    val keyFlowRaw = (elapsed.toFloat() / keyFlowDuration.coerceAtLeast(1L)).coerceIn(0f, 1f)
+
+                    val wP = waveInterpolator.getInterpolation(waveRaw)
+                    val kP = keyFlowInterpolator.getInterpolation(keyFlowRaw)
+
+                    effect.waveProgress = wP
+                    effect.progress = wP
+                    effect.keyFlowProgress = kP
+
+                    val drag = 1.0f - (0.055f * waveSpeedMultiplier.coerceIn(0.2f, 1.2f))
                     for (p in effect.particles) {
                         p.x += p.vx
                         p.y += p.vy
@@ -482,7 +526,7 @@ class RGBRippleOverlayView(context: Context) : View(context) {
             )
         }
         val count = (18 * turbo).toInt().coerceIn(12, 36)
-        val speedScale = 0.45f + 0.55f * speedMultiplier.coerceIn(0.2f, 1.2f)
+        val speedScale = 0.45f + 0.55f * waveSpeedMultiplier.coerceIn(0.2f, 1.2f)
         for (i in 0 until count) {
             val angle = (i.toFloat() / count) * 2 * Math.PI.toFloat() + (Random.nextFloat() - 0.5f) * 0.4f
             val speed = (Random.nextFloat() * 12f + 4f) * (1.0f + (turbo - 1.0f) * 0.35f) * speedScale
@@ -510,7 +554,7 @@ class RGBRippleOverlayView(context: Context) : View(context) {
             )
         }
         val count = (12 * turbo).toInt().coerceIn(8, 26)
-        val speedScale = 0.45f + 0.55f * speedMultiplier.coerceIn(0.2f, 1.2f)
+        val speedScale = 0.45f + 0.55f * waveSpeedMultiplier.coerceIn(0.2f, 1.2f)
         for (i in 0 until count) {
             val vx = (Random.nextFloat() - 0.5f) * 14f * turbo * speedScale
             val vy = -(Random.nextFloat() * 18f + 6f) * turbo * speedScale
@@ -600,23 +644,28 @@ class RGBRippleOverlayView(context: Context) : View(context) {
 
         val keycaps = if (isKeyShapeFlowEnabled) getKeycapRects(kb, left, top, right, bottom) else emptyList()
 
-        for (fx in activeEffects) {
-            val p = fx.progress
-            if (p >= 0.99f) {
+        val iterator = activeEffects.iterator()
+        while (iterator.hasNext()) {
+            val fx = iterator.next()
+            val waveDone = !isVisualEffectEnabled || fx.waveProgress >= 0.99f
+            val keyFlowDone = !isKeyShapeFlowEnabled || fx.keyFlowProgress >= 0.99f
+
+            if (waveDone && keyFlowDone) {
                 activeEffects.remove(fx)
                 continue
             }
 
             // 1. Keycap Matrix Illumination (Cascades across key shapes)
-            if (isKeyShapeFlowEnabled && keycaps.isNotEmpty()) {
-                val energyFade = getEffectFade(p, 1.3f)
-                val baseR = p * fx.maxRadius
+            if (isKeyShapeFlowEnabled && keycaps.isNotEmpty() && fx.keyFlowProgress < 0.99f) {
+                val kp = fx.keyFlowProgress
+                val energyFade = getEffectFade(kp, 1.3f, keyFlowSpeedMultiplier)
+                val baseR = kp * fx.keyFlowMaxRadius
                 val palette = if (fx.type == EffectType.RAZER_CHROMA) getActiveChromaPalette() else getActiveLiquidPalette()
-                drawKeycapMatrixFlow(canvas, fx, keycaps, p, baseR, energyFade, palette)
+                drawKeycapMatrixFlow(canvas, fx, keycaps, kp, baseR, energyFade, palette)
             }
 
             // 2. Visual Effects Background Preset (Canvas water drops, particles, lightning arcs, etc.)
-            if (isVisualEffectEnabled) {
+            if (isVisualEffectEnabled && fx.waveProgress < 0.99f) {
                 when (fx.type) {
                     EffectType.WATER_DROP, EffectType.AMBIENT_RAIN -> drawFluidWaterBackground(canvas, fx)
                     EffectType.NEON_LIGHTNING -> drawNeonLightning(canvas, fx)
@@ -637,9 +686,9 @@ class RGBRippleOverlayView(context: Context) : View(context) {
     }
 
     // --- 1. Fluid Water Droplet ---
-    private fun getEffectFade(progress: Float, baseExponent: Float = 1.3f): Float {
-        val exp = if (speedMultiplier < 0.8f) {
-            baseExponent * (0.6f + 0.4f * (speedMultiplier / 0.8f))
+    private fun getEffectFade(progress: Float, baseExponent: Float = 1.3f, speedMult: Float = waveSpeedMultiplier): Float {
+        val exp = if (speedMult < 0.8f) {
+            baseExponent * (0.6f + 0.4f * (speedMult / 0.8f))
         } else {
             baseExponent
         }

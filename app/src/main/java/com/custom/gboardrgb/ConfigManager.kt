@@ -11,6 +11,10 @@ object ConfigManager {
     const val EXTRA_EFFECT_ID = "extra_effect_id"
     const val EXTRA_SPEED = "extra_speed"
     const val EXTRA_SIZE = "extra_size"
+    const val EXTRA_WAVE_SPEED = "extra_wave_speed"
+    const val EXTRA_WAVE_SIZE = "extra_wave_size"
+    const val EXTRA_KEY_FLOW_SPEED = "extra_key_flow_speed"
+    const val EXTRA_KEY_FLOW_SIZE = "extra_key_flow_size"
     const val EXTRA_AMBIENT_RAIN = "extra_ambient_rain"
     const val EXTRA_USE_CUSTOM_COLORS = "extra_use_custom_colors"
     const val EXTRA_COLOR_PRIMARY = "extra_color_primary"
@@ -27,6 +31,10 @@ object ConfigManager {
     private const val KEY_EFFECT_ID = "key_effect_id"
     private const val KEY_SPEED = "key_speed"
     private const val KEY_SIZE = "key_size"
+    private const val KEY_WAVE_SPEED = "key_wave_speed"
+    private const val KEY_WAVE_SIZE = "key_wave_size"
+    private const val KEY_KEY_FLOW_SPEED = "key_key_flow_speed"
+    private const val KEY_KEY_FLOW_SIZE = "key_key_flow_size"
     private const val KEY_AMBIENT_RAIN = "key_ambient_rain"
     private const val KEY_USE_CUSTOM_COLORS = "key_use_custom_colors"
     private const val KEY_COLOR_PRIMARY = "key_color_primary"
@@ -50,6 +58,10 @@ object ConfigManager {
         var effectType: EffectType = EffectType.WATER_DROP,
         var speedMultiplier: Float = 1.0f,
         var sizeMultiplier: Float = 1.0f,
+        var waveSpeedMultiplier: Float = 1.0f,
+        var waveSizeMultiplier: Float = 1.0f,
+        var keyFlowSpeedMultiplier: Float = 1.0f,
+        var keyFlowSizeMultiplier: Float = 1.0f,
         var isAmbientRainEnabled: Boolean = false,
         var useCustomColors: Boolean = false,
         var colorPrimary: String = "#00FFF5",
@@ -69,6 +81,10 @@ object ConfigManager {
             .putInt(KEY_EFFECT_ID, settings.effectType.id)
             .putFloat(KEY_SPEED, settings.speedMultiplier)
             .putFloat(KEY_SIZE, settings.sizeMultiplier)
+            .putFloat(KEY_WAVE_SPEED, settings.waveSpeedMultiplier)
+            .putFloat(KEY_WAVE_SIZE, settings.waveSizeMultiplier)
+            .putFloat(KEY_KEY_FLOW_SPEED, settings.keyFlowSpeedMultiplier)
+            .putFloat(KEY_KEY_FLOW_SIZE, settings.keyFlowSizeMultiplier)
             .putBoolean(KEY_AMBIENT_RAIN, settings.isAmbientRainEnabled)
             .putBoolean(KEY_USE_CUSTOM_COLORS, settings.useCustomColors)
             .putString(KEY_COLOR_PRIMARY, settings.colorPrimary)
@@ -86,6 +102,10 @@ object ConfigManager {
             put("effect_id", settings.effectType.id)
             put("speed", settings.speedMultiplier.toDouble())
             put("size", settings.sizeMultiplier.toDouble())
+            put("wave_speed", settings.waveSpeedMultiplier.toDouble())
+            put("wave_size", settings.waveSizeMultiplier.toDouble())
+            put("key_flow_speed", settings.keyFlowSpeedMultiplier.toDouble())
+            put("key_flow_size", settings.keyFlowSizeMultiplier.toDouble())
             put("ambient_rain", settings.isAmbientRainEnabled)
             put("use_custom_colors", settings.useCustomColors)
             put("color_primary", settings.colorPrimary)
@@ -133,6 +153,10 @@ object ConfigManager {
             putExtra(EXTRA_EFFECT_ID, settings.effectType.id)
             putExtra(EXTRA_SPEED, settings.speedMultiplier)
             putExtra(EXTRA_SIZE, settings.sizeMultiplier)
+            putExtra(EXTRA_WAVE_SPEED, settings.waveSpeedMultiplier)
+            putExtra(EXTRA_WAVE_SIZE, settings.waveSizeMultiplier)
+            putExtra(EXTRA_KEY_FLOW_SPEED, settings.keyFlowSpeedMultiplier)
+            putExtra(EXTRA_KEY_FLOW_SIZE, settings.keyFlowSizeMultiplier)
             putExtra(EXTRA_AMBIENT_RAIN, settings.isAmbientRainEnabled)
             putExtra(EXTRA_USE_CUSTOM_COLORS, settings.useCustomColors)
             putExtra(EXTRA_COLOR_PRIMARY, settings.colorPrimary)
@@ -155,8 +179,12 @@ object ConfigManager {
             try {
                 val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                 val id = prefs.getInt(KEY_EFFECT_ID, EffectType.WATER_DROP.id)
-                val speed = (kotlin.math.round(prefs.getFloat(KEY_SPEED, 1.0f) * 10f) / 10f).coerceIn(0.3f, 2.0f)
-                val size = (kotlin.math.round(prefs.getFloat(KEY_SIZE, 1.0f) * 10f) / 10f).coerceIn(0.2f, 1.5f)
+                val legacySpeed = (kotlin.math.round(prefs.getFloat(KEY_SPEED, 1.0f) * 10f) / 10f).coerceIn(0.3f, 2.0f)
+                val legacySize = (kotlin.math.round(prefs.getFloat(KEY_SIZE, 1.0f) * 10f) / 10f).coerceIn(0.2f, 1.5f)
+                val waveSpeed = (kotlin.math.round(prefs.getFloat(KEY_WAVE_SPEED, legacySpeed) * 10f) / 10f).coerceIn(0.3f, 2.0f)
+                val waveSize = (kotlin.math.round(prefs.getFloat(KEY_WAVE_SIZE, legacySize) * 10f) / 10f).coerceIn(0.2f, 1.5f)
+                val keyFlowSpeed = (kotlin.math.round(prefs.getFloat(KEY_KEY_FLOW_SPEED, legacySpeed) * 10f) / 10f).coerceIn(0.3f, 2.0f)
+                val keyFlowSize = (kotlin.math.round(prefs.getFloat(KEY_KEY_FLOW_SIZE, legacySize) * 10f) / 10f).coerceIn(0.2f, 1.5f)
                 val ambient = prefs.getBoolean(KEY_AMBIENT_RAIN, false)
                 val useCustom = prefs.getBoolean(KEY_USE_CUSTOM_COLORS, false)
                 val colPrim = prefs.getString(KEY_COLOR_PRIMARY, "#00FFF5") ?: "#00FFF5"
@@ -169,8 +197,8 @@ object ConfigManager {
                 val keyFlow = prefs.getBoolean(KEY_KEY_SHAPE_FLOW, true)
                 val borderOnly = prefs.getBoolean(KEY_KEY_BORDER_ONLY, true)
                 return Settings(
-                    EffectType.fromId(id), speed, size, ambient,
-                    useCustom, colPrim, colSec, turbo, glide, haptic, underglow, visualEffect, keyFlow, borderOnly
+                    EffectType.fromId(id), waveSpeed, waveSize, waveSpeed, waveSize, keyFlowSpeed, keyFlowSize,
+                    ambient, useCustom, colPrim, colSec, turbo, glide, haptic, underglow, visualEffect, keyFlow, borderOnly
                 )
             } catch (e: Throwable) {
                 // Fallback to disk
@@ -186,8 +214,12 @@ object ConfigManager {
                     if (text.isNotBlank()) {
                         val json = JSONObject(text)
                         val id = json.optInt("effect_id", 0)
-                        val speed = json.optDouble("speed", 1.0).toFloat()
-                        val size = json.optDouble("size", 1.0).toFloat()
+                        val legacySpeed = json.optDouble("speed", 1.0).toFloat()
+                        val legacySize = json.optDouble("size", 1.0).toFloat()
+                        val waveSpeed = json.optDouble("wave_speed", legacySpeed.toDouble()).toFloat()
+                        val waveSize = json.optDouble("wave_size", legacySize.toDouble()).toFloat()
+                        val keyFlowSpeed = json.optDouble("key_flow_speed", legacySpeed.toDouble()).toFloat()
+                        val keyFlowSize = json.optDouble("key_flow_size", legacySize.toDouble()).toFloat()
                         val ambient = json.optBoolean("ambient_rain", false)
                         val useCustom = json.optBoolean("use_custom_colors", false)
                         val colPrim = json.optString("color_primary", "#00FFF5")
@@ -200,8 +232,8 @@ object ConfigManager {
                         val keyFlow = json.optBoolean("key_shape_flow", true)
                         val borderOnly = json.optBoolean("key_border_only", true)
                         return Settings(
-                            EffectType.fromId(id), speed, size, ambient,
-                            useCustom, colPrim, colSec, turbo, glide, haptic, underglow, visualEffect, keyFlow, borderOnly
+                            EffectType.fromId(id), waveSpeed, waveSize, waveSpeed, waveSize, keyFlowSpeed, keyFlowSize,
+                            ambient, useCustom, colPrim, colSec, turbo, glide, haptic, underglow, visualEffect, keyFlow, borderOnly
                         )
                     }
                 }

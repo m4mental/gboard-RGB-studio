@@ -34,8 +34,12 @@ class SettingsProvider : ContentProvider() {
 
         fun bundleToSettings(bundle: Bundle): ConfigManager.Settings {
             val id = bundle.getInt(ConfigManager.EXTRA_EFFECT_ID, EffectType.WATER_DROP.id)
-            val speed = bundle.getFloat(ConfigManager.EXTRA_SPEED, 1.0f)
-            val size = bundle.getFloat(ConfigManager.EXTRA_SIZE, 1.0f)
+            val legacySpeed = bundle.getFloat(ConfigManager.EXTRA_SPEED, 1.0f)
+            val legacySize = bundle.getFloat(ConfigManager.EXTRA_SIZE, 1.0f)
+            val waveSpeed = bundle.getFloat(ConfigManager.EXTRA_WAVE_SPEED, legacySpeed)
+            val waveSize = bundle.getFloat(ConfigManager.EXTRA_WAVE_SIZE, legacySize)
+            val keyFlowSpeed = bundle.getFloat(ConfigManager.EXTRA_KEY_FLOW_SPEED, legacySpeed)
+            val keyFlowSize = bundle.getFloat(ConfigManager.EXTRA_KEY_FLOW_SIZE, legacySize)
             val ambient = bundle.getBoolean(ConfigManager.EXTRA_AMBIENT_RAIN, false)
             val useCustom = bundle.getBoolean(ConfigManager.EXTRA_USE_CUSTOM_COLORS, false)
             val colPrim = bundle.getString(ConfigManager.EXTRA_COLOR_PRIMARY, "#00FFF5") ?: "#00FFF5"
@@ -48,8 +52,8 @@ class SettingsProvider : ContentProvider() {
             val keyFlow = bundle.getBoolean(ConfigManager.EXTRA_KEY_SHAPE_FLOW, true)
             val borderOnly = bundle.getBoolean(ConfigManager.EXTRA_KEY_BORDER_ONLY, true)
             return ConfigManager.Settings(
-                EffectType.fromId(id), speed, size, ambient,
-                useCustom, colPrim, colSec, turbo, glide, haptic, underglow, visualEffect, keyFlow, borderOnly
+                EffectType.fromId(id), waveSpeed, waveSize, waveSpeed, waveSize, keyFlowSpeed, keyFlowSize,
+                ambient, useCustom, colPrim, colSec, turbo, glide, haptic, underglow, visualEffect, keyFlow, borderOnly
             )
         }
 
@@ -58,6 +62,10 @@ class SettingsProvider : ContentProvider() {
                 putInt(ConfigManager.EXTRA_EFFECT_ID, settings.effectType.id)
                 putFloat(ConfigManager.EXTRA_SPEED, settings.speedMultiplier)
                 putFloat(ConfigManager.EXTRA_SIZE, settings.sizeMultiplier)
+                putFloat(ConfigManager.EXTRA_WAVE_SPEED, settings.waveSpeedMultiplier)
+                putFloat(ConfigManager.EXTRA_WAVE_SIZE, settings.waveSizeMultiplier)
+                putFloat(ConfigManager.EXTRA_KEY_FLOW_SPEED, settings.keyFlowSpeedMultiplier)
+                putFloat(ConfigManager.EXTRA_KEY_FLOW_SIZE, settings.keyFlowSizeMultiplier)
                 putBoolean(ConfigManager.EXTRA_AMBIENT_RAIN, settings.isAmbientRainEnabled)
                 putBoolean(ConfigManager.EXTRA_USE_CUSTOM_COLORS, settings.useCustomColors)
                 putString(ConfigManager.EXTRA_COLOR_PRIMARY, settings.colorPrimary)

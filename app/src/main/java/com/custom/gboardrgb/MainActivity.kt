@@ -32,8 +32,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnRestoreStock: MaterialButton
 
     private lateinit var previewOverlay: RGBRippleOverlayView
-    private lateinit var tvSpeedLabel: TextView
-    private lateinit var tvSizeLabel: TextView
+    private lateinit var tvWaveSpeedLabel: TextView
+    private lateinit var tvWaveSizeLabel: TextView
+    private lateinit var tvKeyFlowSpeedLabel: TextView
+    private lateinit var tvKeyFlowSizeLabel: TextView
     private lateinit var chipGroup: ChipGroup
     private lateinit var switchAmbientRain: MaterialSwitch
     private lateinit var switchTurboDynamics: MaterialSwitch
@@ -65,8 +67,10 @@ class MainActivity : AppCompatActivity() {
         btnApply3dWhite = findViewById(R.id.btnApply3dWhite)
         btnRestoreStock = findViewById(R.id.btnRestoreStock)
 
-        tvSpeedLabel = findViewById(R.id.tvSpeedLabel)
-        tvSizeLabel = findViewById(R.id.tvSizeLabel)
+        tvWaveSpeedLabel = findViewById(R.id.tvWaveSpeedLabel)
+        tvWaveSizeLabel = findViewById(R.id.tvWaveSizeLabel)
+        tvKeyFlowSpeedLabel = findViewById(R.id.tvKeyFlowSpeedLabel)
+        tvKeyFlowSizeLabel = findViewById(R.id.tvKeyFlowSizeLabel)
         chipGroup = findViewById(R.id.chipGroupEffects)
         switchAmbientRain = findViewById(R.id.switchAmbientRain)
         switchTurboDynamics = findViewById(R.id.switchTurboDynamics)
@@ -97,8 +101,10 @@ class MainActivity : AppCompatActivity() {
                 FrameLayout.LayoutParams.MATCH_PARENT
             )
             currentEffect = currentSettings.effectType
-            speedMultiplier = currentSettings.speedMultiplier
-            sizeMultiplier = currentSettings.sizeMultiplier
+            waveSpeedMultiplier = currentSettings.waveSpeedMultiplier
+            waveSizeMultiplier = currentSettings.waveSizeMultiplier
+            keyFlowSpeedMultiplier = currentSettings.keyFlowSpeedMultiplier
+            keyFlowSizeMultiplier = currentSettings.keyFlowSizeMultiplier
             isAmbientRainEnabled = currentSettings.isAmbientRainEnabled
             useCustomColors = currentSettings.useCustomColors
             isTurboDynamicsEnabled = currentSettings.isTurboDynamicsEnabled
@@ -272,61 +278,122 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupSliders() {
-        val sliderSpeed = findViewById<Slider>(R.id.sliderSpeed)
-        val sliderSize = findViewById<Slider>(R.id.sliderSize)
+        val sliderWaveSpeed = findViewById<Slider>(R.id.sliderWaveSpeed)
+        val sliderWaveSize = findViewById<Slider>(R.id.sliderWaveSize)
+        val sliderKeyFlowSpeed = findViewById<Slider>(R.id.sliderKeyFlowSpeed)
+        val sliderKeyFlowSize = findViewById<Slider>(R.id.sliderKeyFlowSize)
 
-        sliderSpeed.isSaveEnabled = false
-        sliderSize.isSaveEnabled = false
+        sliderWaveSpeed.isSaveEnabled = false
+        sliderWaveSize.isSaveEnabled = false
+        sliderKeyFlowSpeed.isSaveEnabled = false
+        sliderKeyFlowSize.isSaveEnabled = false
 
-        val speed = (kotlin.math.round(currentSettings.speedMultiplier * 10f) / 10f).coerceIn(0.3f, 2.0f)
-        val size = (kotlin.math.round(currentSettings.sizeMultiplier * 10f) / 10f).coerceIn(0.2f, 1.5f)
+        val waveSpeed = (kotlin.math.round(currentSettings.waveSpeedMultiplier * 10f) / 10f).coerceIn(0.3f, 2.0f)
+        val waveSize = (kotlin.math.round(currentSettings.waveSizeMultiplier * 10f) / 10f).coerceIn(0.2f, 1.5f)
+        val keyFlowSpeed = (kotlin.math.round(currentSettings.keyFlowSpeedMultiplier * 10f) / 10f).coerceIn(0.3f, 2.0f)
+        val keyFlowSize = (kotlin.math.round(currentSettings.keyFlowSizeMultiplier * 10f) / 10f).coerceIn(0.2f, 1.5f)
 
-        sliderSpeed.value = speed
-        sliderSize.value = size
+        sliderWaveSpeed.value = waveSpeed
+        sliderWaveSize.value = waveSize
+        sliderKeyFlowSpeed.value = keyFlowSpeed
+        sliderKeyFlowSize.value = keyFlowSize
 
-        updateSpeedLabel(speed)
-        updateSizeLabel(size)
+        updateWaveSpeedLabel(waveSpeed)
+        updateWaveSizeLabel(waveSize)
+        updateKeyFlowSpeedLabel(keyFlowSpeed)
+        updateKeyFlowSizeLabel(keyFlowSize)
 
-        sliderSpeed.addOnChangeListener { _, value, fromUser ->
+        sliderWaveSpeed.addOnChangeListener { _, value, fromUser ->
             if (fromUser) {
-                val cleanSpeed = (kotlin.math.round(value * 10f) / 10f).coerceIn(0.3f, 2.0f)
-                currentSettings.speedMultiplier = cleanSpeed
-                previewOverlay.speedMultiplier = cleanSpeed
-                updateSpeedLabel(cleanSpeed)
+                val clean = (kotlin.math.round(value * 10f) / 10f).coerceIn(0.3f, 2.0f)
+                currentSettings.waveSpeedMultiplier = clean
+                previewOverlay.waveSpeedMultiplier = clean
+                updateWaveSpeedLabel(clean)
                 ConfigManager.saveSettings(this, currentSettings)
+                previewOverlay.post {
+                    previewOverlay.spawnRipple(previewOverlay.width / 2f, previewOverlay.height / 2f)
+                }
             }
         }
 
-        sliderSize.addOnChangeListener { _, value, fromUser ->
+        sliderWaveSize.addOnChangeListener { _, value, fromUser ->
             if (fromUser) {
-                val cleanSize = (kotlin.math.round(value * 10f) / 10f).coerceIn(0.2f, 1.5f)
-                currentSettings.sizeMultiplier = cleanSize
-                previewOverlay.sizeMultiplier = cleanSize
-                updateSizeLabel(cleanSize)
+                val clean = (kotlin.math.round(value * 10f) / 10f).coerceIn(0.2f, 1.5f)
+                currentSettings.waveSizeMultiplier = clean
+                previewOverlay.waveSizeMultiplier = clean
+                updateWaveSizeLabel(clean)
                 ConfigManager.saveSettings(this, currentSettings)
+                previewOverlay.post {
+                    previewOverlay.spawnRipple(previewOverlay.width / 2f, previewOverlay.height / 2f)
+                }
+            }
+        }
+
+        sliderKeyFlowSpeed.addOnChangeListener { _, value, fromUser ->
+            if (fromUser) {
+                val clean = (kotlin.math.round(value * 10f) / 10f).coerceIn(0.3f, 2.0f)
+                currentSettings.keyFlowSpeedMultiplier = clean
+                previewOverlay.keyFlowSpeedMultiplier = clean
+                updateKeyFlowSpeedLabel(clean)
+                ConfigManager.saveSettings(this, currentSettings)
+                previewOverlay.post {
+                    previewOverlay.spawnRipple(previewOverlay.width / 2f, previewOverlay.height / 2f)
+                }
+            }
+        }
+
+        sliderKeyFlowSize.addOnChangeListener { _, value, fromUser ->
+            if (fromUser) {
+                val clean = (kotlin.math.round(value * 10f) / 10f).coerceIn(0.2f, 1.5f)
+                currentSettings.keyFlowSizeMultiplier = clean
+                previewOverlay.keyFlowSizeMultiplier = clean
+                updateKeyFlowSizeLabel(clean)
+                ConfigManager.saveSettings(this, currentSettings)
+                previewOverlay.post {
+                    previewOverlay.spawnRipple(previewOverlay.width / 2f, previewOverlay.height / 2f)
+                }
             }
         }
     }
 
-    private fun updateSpeedLabel(speed: Float) {
+    private fun updateWaveSpeedLabel(speed: Float) {
         val desc = when {
             speed <= 0.4f -> "Ultra Slow-Mo"
             speed <= 0.7f -> "Cinematic Slow"
             speed >= 1.4f -> "Snappy Fast"
             else -> "Normal"
         }
-        tvSpeedLabel.text = String.format("Animation Speed: %.1fx (%s)", speed, desc)
+        tvWaveSpeedLabel.text = String.format("Wave Speed: %.1fx (%s)", speed, desc)
     }
 
-    private fun updateSizeLabel(size: Float) {
+    private fun updateWaveSizeLabel(size: Float) {
         val desc = when {
-            size <= 0.25f -> "Ultra-Tight / Neighbors Only"
-            size <= 0.4f -> "Micro Keycap Glow"
-            size <= 0.7f -> "Tight Key Glow"
+            size <= 0.25f -> "Ultra-Tight / Concentrated"
+            size <= 0.5f -> "Medium Spread"
             size >= 1.3f -> "Wide Reach"
+            else -> "Full Reach"
+        }
+        tvWaveSizeLabel.text = String.format("Wave Size: %.1fx (%s)", size, desc)
+    }
+
+    private fun updateKeyFlowSpeedLabel(speed: Float) {
+        val desc = when {
+            speed <= 0.4f -> "Ultra Slow-Mo"
+            speed <= 0.7f -> "Cinematic Flow"
+            speed >= 1.4f -> "Instant Snap"
+            else -> "Normal"
+        }
+        tvKeyFlowSpeedLabel.text = String.format("Key Glow Speed: %.1fx (%s)", speed, desc)
+    }
+
+    private fun updateKeyFlowSizeLabel(size: Float) {
+        val desc = when {
+            size <= 0.25f -> "Neighbors Only"
+            size <= 0.5f -> "Subtle Matrix Glow"
+            size >= 1.3f -> "Full Keyboard Cascade"
             else -> "Full Keyboard"
         }
-        tvSizeLabel.text = String.format("Wave Size: %.1fx (%s)", size, desc)
+        tvKeyFlowSizeLabel.text = String.format("Key Glow Spread: %.1fx (%s)", size, desc)
     }
 
     private fun setupTabs() {
