@@ -111,11 +111,12 @@ object ConfigManager {
                 }
                 val syncScript = buildString {
                     for (path in CONFIG_FILE_PATHS) {
-                        appendLine("mkdir -p '$(dirname '$path')'")
+                        val dir = File(path).parent ?: continue
+                        appendLine("mkdir -p '$dir'")
                         appendLine("cp '${tempFile.absolutePath}' '$path'")
                         appendLine("chmod 644 '$path'")
-                        appendLine("chown $gboardUid:$gboardUid '$path'")
-                        appendLine("restorecon '$path'")
+                        appendLine("chown $gboardUid:$gboardUid '$path' 2>/dev/null || true")
+                        appendLine("restorecon '$path' 2>/dev/null || true")
                     }
                 }
                 val scriptFile = File.createTempFile("sync_cfg_", ".sh")
@@ -149,74 +150,81 @@ object ConfigManager {
     }
 
     fun loadSettings(context: Context? = null): Settings {
-        if (context != null) {
-            // 1. If loaded from our own app context, read private SharedPreferences directly
-            if (context.packageName == "com.custom.gboardrgb") {
-                try {
-                    val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-                    val id = prefs.getInt(KEY_EFFECT_ID, EffectType.WATER_DROP.id)
-                    val speed = (kotlin.math.round(prefs.getFloat(KEY_SPEED, 1.0f) * 10f) / 10f).coerceIn(0.3f, 2.0f)
-                    val size = (kotlin.math.round(prefs.getFloat(KEY_SIZE, 1.0f) * 10f) / 10f).coerceIn(0.2f, 1.5f)
-                    val ambient = prefs.getBoolean(KEY_AMBIENT_RAIN, false)
-                    val useCustom = prefs.getBoolean(KEY_USE_CUSTOM_COLORS, false)
-                    val colPrim = prefs.getString(KEY_COLOR_PRIMARY, "#00FFF5") ?: "#00FFF5"
-                    val colSec = prefs.getString(KEY_COLOR_SECONDARY, "#FF00AA") ?: "#FF00AA"
-                    val turbo = prefs.getBoolean(KEY_TURBO_DYNAMICS, true)
-                    val glide = prefs.getBoolean(KEY_GLIDE_TRAIL, true)
-                    val haptic = prefs.getBoolean(KEY_HAPTIC, true)
-                    val underglow = prefs.getBoolean(KEY_UNDERGLOW, false)
-                    val visualEffect = prefs.getBoolean(KEY_VISUAL_EFFECT, true)
-                    val keyFlow = prefs.getBoolean(KEY_KEY_SHAPE_FLOW, true)
-                    val borderOnly = prefs.getBoolean(KEY_KEY_BORDER_ONLY, true)
-                    return Settings(
-                        EffectType.fromId(id), speed, size, ambient,
-                        useCustom, colPrim, colSec, turbo, glide, haptic, underglow, visualEffect, keyFlow, borderOnly
-                    )
-                } catch (e: Exception) {
-                    // Fallback
-                }
-            } else {
-                // 2. If loaded from Gboard context, query SettingsProvider
-                try {
-                    val fromProvider = SettingsProvider.getSettings(context)
-                    return fromProvider
-                } catch (e: Exception) {
-                    // Fallback
-                }
+        // 1. If loaded from companion app context, read private SharedPreferences directly
+        if (context != null && context.packageName == "com.custom.gboardrgb") {
+            try {
+                val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                val id = prefs.getInt(KEY_EFFECT_ID, EffectType.WATER_DROP.id)
+                val speed = (kotlin.math.round(prefs.getFloat(KEY_SPEED, 1.0f) * 10f) / 10f).coerceIn(0.3f, 2.0f)
+                val size = (kotlin.math.round(prefs.getFloat(KEY_SIZE, 1.0f) * 10f) / 10f).coerceIn(0.2f, 1.5f)
+                val ambient = prefs.getBoolean(KEY_AMBIENT_RAIN, false)
+                val useCustom = prefs.getBoolean(KEY_USE_CUSTOM_COLORS, false)
+                val colPrim = prefs.getString(KEY_COLOR_PRIMARY, "#00FFF5") ?: "#00FFF5"
+                val colSec = prefs.getString(KEY_COLOR_SECONDARY, "#FF00AA") ?: "#FF00AA"
+                val turbo = prefs.getBoolean(KEY_TURBO_DYNAMICS, true)
+                val glide = prefs.getBoolean(KEY_GLIDE_TRAIL, true)
+                val haptic = prefs.getBoolean(KEY_HAPTIC, true)
+                val underglow = prefs.getBoolean(KEY_UNDERGLOW, false)
+                val visualEffect = prefs.getBoolean(KEY_VISUAL_EFFECT, true)
+                val keyFlow = prefs.getBoolean(KEY_KEY_SHAPE_FLOW, true)
+                val borderOnly = prefs.getBoolean(KEY_KEY_BORDER_ONLY, true)
+                return Settings(
+                    EffectType.fromId(id), speed, size, ambient,
+                    useCustom, colPrim, colSec, turbo, glide, haptic, underglow, visualEffect, keyFlow, borderOnly
+                )
+            } catch (e: Throwable) {
+                // Fallback to disk
             }
         }
 
-        // 3. Fallback to reading disk JSON files
+        // 2. In Gboard: Read local JSON config files directly (Fast, 0ms, Non-blocking, Zero IPC)
         for (path in CONFIG_FILE_PATHS) {
             try {
                 val file = File(path)
                 if (file.exists() && file.canRead()) {
                     val text = file.readText()
-                    val json = JSONObject(text)
-                    val id = json.optInt("effect_id", 0)
-                    val speed = json.optDouble("speed", 1.0).toFloat()
-                    val size = json.optDouble("size", 1.0).toFloat()
-                    val ambient = json.optBoolean("ambient_rain", false)
-                    val useCustom = json.optBoolean("use_custom_colors", false)
-                    val colPrim = json.optString("color_primary", "#00FFF5")
-                    val colSec = json.optString("color_secondary", "#FF00AA")
-                    val turbo = json.optBoolean("turbo_dynamics", true)
-                    val glide = json.optBoolean("glide_trail", true)
-                    val haptic = json.optBoolean("haptic", true)
-                    val underglow = json.optBoolean("underglow", false)
-                    val visualEffect = json.optBoolean("visual_effect", true)
-                    val keyFlow = json.optBoolean("key_shape_flow", true)
-                    val borderOnly = json.optBoolean("key_border_only", true)
-                    return Settings(
-                        EffectType.fromId(id), speed, size, ambient,
-                        useCustom, colPrim, colSec, turbo, glide, haptic, underglow, visualEffect, keyFlow, borderOnly
-                    )
+                    if (text.isNotBlank()) {
+                        val json = JSONObject(text)
+                        val id = json.optInt("effect_id", 0)
+                        val speed = json.optDouble("speed", 1.0).toFloat()
+                        val size = json.optDouble("size", 1.0).toFloat()
+                        val ambient = json.optBoolean("ambient_rain", false)
+                        val useCustom = json.optBoolean("use_custom_colors", false)
+                        val colPrim = json.optString("color_primary", "#00FFF5")
+                        val colSec = json.optString("color_secondary", "#FF00AA")
+                        val turbo = json.optBoolean("turbo_dynamics", true)
+                        val glide = json.optBoolean("glide_trail", true)
+                        val haptic = json.optBoolean("haptic", true)
+                        val underglow = json.optBoolean("underglow", false)
+                        val visualEffect = json.optBoolean("visual_effect", true)
+                        val keyFlow = json.optBoolean("key_shape_flow", true)
+                        val borderOnly = json.optBoolean("key_border_only", true)
+                        return Settings(
+                            EffectType.fromId(id), speed, size, ambient,
+                            useCustom, colPrim, colSec, turbo, glide, haptic, underglow, visualEffect, keyFlow, borderOnly
+                        )
+                    }
                 }
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 // Continue to next path
             }
         }
 
+        // 3. Fallback defaults (Instant, safe, guaranteed to never hang or block Gboard)
         return Settings()
+    }
+
+    /**
+     * Queries SettingsProvider in a background thread to update settings without blocking Gboard's main UI thread.
+     */
+    fun syncFromProviderAsync(context: Context, onLoaded: (Settings) -> Unit) {
+        Thread {
+            try {
+                val settings = SettingsProvider.getSettings(context)
+                if (settings != null) {
+                    onLoaded(settings)
+                }
+            } catch (ignored: Throwable) {}
+        }.start()
     }
 }

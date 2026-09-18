@@ -423,6 +423,34 @@ class MainHook : IXposedHookLoadPackage {
                 overlay.bringToFront()
                 currentOverlayRef = WeakReference(overlay)
                 XposedBridge.log("[$TAG] Mounted overlay on root: ${root.javaClass.simpleName} with effect: ${overlay.currentEffect.name}")
+
+                // Asynchronously query SettingsProvider in background without blocking Gboard UI thread
+                ConfigManager.syncFromProviderAsync(root.context) { freshSettings ->
+                    root.post {
+                        val activeOverlay = currentOverlayRef?.get() ?: return@post
+                        activeOverlay.currentEffect = freshSettings.effectType
+                        activeOverlay.speedMultiplier = freshSettings.speedMultiplier
+                        activeOverlay.sizeMultiplier = freshSettings.sizeMultiplier
+                        activeOverlay.isAmbientRainEnabled = freshSettings.isAmbientRainEnabled
+                        activeOverlay.useCustomColors = freshSettings.useCustomColors
+                        activeOverlay.isTurboDynamicsEnabled = freshSettings.isTurboDynamicsEnabled
+                        activeOverlay.isGlideTrailEnabled = freshSettings.isGlideTrailEnabled
+                        activeOverlay.isUnderglowEnabled = freshSettings.isUnderglowEnabled
+                        activeOverlay.isVisualEffectEnabled = freshSettings.isVisualEffectEnabled
+                        activeOverlay.isKeyShapeFlowEnabled = freshSettings.isKeyShapeFlowEnabled
+                        activeOverlay.isKeyBorderOnlyEnabled = freshSettings.isKeyBorderOnlyEnabled
+
+                        try {
+                            activeOverlay.customColorPrimary = Color.parseColor(freshSettings.colorPrimary)
+                            activeOverlay.customColorSecondary = Color.parseColor(freshSettings.colorSecondary)
+                        } catch (e: Exception) {}
+
+                        isHapticEnabled = freshSettings.isHapticEnabled
+                        isTurboDynamicsEnabled = freshSettings.isTurboDynamicsEnabled
+                        isGlideTrailEnabled = freshSettings.isGlideTrailEnabled
+                        activeOverlay.invalidate()
+                    }
+                }
             } catch (e: Exception) {
                 XposedBridge.log("[$TAG] Mount error: ${e.message}")
             }

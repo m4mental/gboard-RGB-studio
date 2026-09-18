@@ -14,7 +14,7 @@ class SettingsProvider : ContentProvider() {
         val CONTENT_URI: Uri = Uri.parse("content://$AUTHORITY/settings")
         const val METHOD_GET_SETTINGS = "getSettings"
 
-        fun getSettings(context: Context): ConfigManager.Settings {
+        fun getSettings(context: Context): ConfigManager.Settings? {
             return try {
                 val bundle = context.contentResolver.call(
                     CONTENT_URI,
@@ -25,10 +25,10 @@ class SettingsProvider : ContentProvider() {
                 if (bundle != null) {
                     bundleToSettings(bundle)
                 } else {
-                    ConfigManager.loadSettings(context)
+                    null
                 }
-            } catch (e: Exception) {
-                ConfigManager.loadSettings(context)
+            } catch (e: Throwable) {
+                null
             }
         }
 
