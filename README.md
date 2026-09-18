@@ -21,12 +21,17 @@ All effects render inside a custom hardware-accelerated canvas overlay dynamical
 
 - ⌨️ **Keycap Matrix Flow & Authentic Shape Geometry:**
   - Reactive luminescence cascades through physical keycap shapes across rows.
-  - Exact key shape recognition: **Caps Lock / Shift (`▲`)** and **Backspace (`⌫`)** are styled with authentic square squircles matching letter keys, while **`?123`** and **`Enter`** render as circular pills.
+  - Exact key shape recognition: **Caps Lock / Shift (`▲`)**, **Backspace (`⌫`)**, **Comma (`,`)**, **Emoji**, and **Period (`.`)** are styled with authentic square squircles matching letter keys (`A, S, D, F`), while **`?123`** and **`Enter`** render as circular action pills.
   - **Keycap Border Rim Only** option: Restrict glowing light exclusively to the mechanical outer borders of keycaps.
 
-- 🎛️ **Independent Effect & Key Flow Toggles:**
-  - Dedicated switches for **Visual Effect Presets** and **Keycap Matrix Flow**.
-  - Run them individually or layer them together simultaneously for maximum visual impact.
+- 🎛️ **Decoupled Independent Dual Tuning Sliders:**
+  - Dedicated master switches for **Visual Effect Presets** and **Mechanical Key Matrix Flow**.
+  - **Independent Speed Multipliers**: Tune Wave propagation speed (`0.3x` to `2.0x`) independently from Keycap Matrix lighting transitions (`0.3x` to `2.0x`).
+  - **Independent Reach / Size Multipliers**: Adjust circular wave radius spread independently from keycap matrix cascade reach.
+
+- 🎚️ **Modular Card Architecture & Master Toggle Dimming:**
+  - Control app redesign featuring high-end modular cards for **Visual Effect Presets**, **Mechanical Key Matrix**, and **Custom Dual-Tone Palette**.
+  - Intelligent real-time control state: Turning any master switch OFF automatically dims child sliders and chips to `45% alpha` and disables interaction for an authentic high-end RGB suite (Corsair iCUE / Razer Synapse style).
 
 - 🎨 **Built-in 3D Mechanical Themes (Direct Root Engine):**
   - **3D Pitch-Black OLED Edition:** True pitch-black AMOLED canvas with 3D elevated keycaps and crisp borders, built specifically to make RGB luminescence pop!
@@ -51,15 +56,9 @@ All effects render inside a custom hardware-accelerated canvas overlay dynamical
 - ⚡ **Zero-Restart Real-Time Synchronization:**
   - Switch presets, themes, or adjust sliders in the companion app; updates broadcast instantly to Gboard in under 5ms without killing or restarting Gboard.
 
-- 🌊 **Multi-Touch Crossover Physics:**
+- 🌊 **Multi-Touch Crossover Physics & Long-Press Jitter:**
   - Type at full speed with multiple fingers simultaneously — waves do not cancel each other; they collide, overlap, and blend seamlessly in the hardware framebuffer.
-
-- 🔁 **Continuous Long-Press Wave Pulse:**
-  - Hold Backspace or any key to trigger rhythmic, continuous wave bursts (280ms threshold, 115ms interval) for satisfying key repeat feedback.
-
-- 🎛️ **Granular Precision Sliders:**
-  - **Animation Speed:** Scalable from `0.3x` (*Ultra Slow-Mo Liquid Glide*) up to `2.0x` (*Snappy Fast*).
-  - **Wave Size / Reach:** Scalable from `0.2x` (*Ultra-Tight / Neighbors Only*) up to `1.5x` (*Full Keyboard Reach*).
+  - Polar touch micro-jitter during continuous long-press key repeats for authentic mechanical key switch vibrations.
 
 - 🎨 **Custom Dual-Tone Palettes & Curated Swatches:**
   - One-tap switchable aesthetic presets: **Nothing OS** (Red/White), **Cyberpunk** (Yellow/Cyan), **Dracula** (Purple/Green), **Sunset** (Orange/Pink), and **Glacier Ice** (Cyan/White).
