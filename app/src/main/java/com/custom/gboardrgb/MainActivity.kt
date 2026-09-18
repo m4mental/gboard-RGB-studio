@@ -3,18 +3,19 @@ package com.custom.gboardrgb
 import android.graphics.Color
 import android.os.Bundle
 import android.view.MotionEvent
+import android.view.View
+import android.view.ViewGroup
 import android.widget.FrameLayout
+import android.widget.LinearLayout
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
+import com.google.android.material.button.MaterialButton
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
 import com.google.android.material.materialswitch.MaterialSwitch
 import com.google.android.material.slider.Slider
-
-import android.view.View
-import android.widget.Toast
-import androidx.lifecycle.lifecycleScope
-import com.google.android.material.button.MaterialButton
 import com.google.android.material.tabs.TabLayout
 import kotlinx.coroutines.launch
 
@@ -47,6 +48,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var switchKeyBorderOnly: MaterialSwitch
     private lateinit var switchCustomColors: MaterialSwitch
     private lateinit var chipGroupSwatches: ChipGroup
+    private lateinit var layoutCustomColorsControls: LinearLayout
+    private lateinit var layoutVisualEffectControls: LinearLayout
+    private lateinit var layoutKeyFlowControls: LinearLayout
 
     private var currentSettings = ConfigManager.Settings()
 
@@ -82,6 +86,9 @@ class MainActivity : AppCompatActivity() {
         switchKeyBorderOnly = findViewById(R.id.switchKeyBorderOnly)
         switchCustomColors = findViewById(R.id.switchCustomColors)
         chipGroupSwatches = findViewById(R.id.chipGroupSwatches)
+        layoutCustomColorsControls = findViewById(R.id.layoutCustomColorsControls)
+        layoutVisualEffectControls = findViewById(R.id.layoutVisualEffectControls)
+        layoutKeyFlowControls = findViewById(R.id.layoutKeyFlowControls)
 
         setupTabs()
         setupThemeControls()
@@ -176,20 +183,24 @@ class MainActivity : AppCompatActivity() {
             ConfigManager.saveSettings(this, currentSettings)
         }
 
+        updateVisualEffectCardState(currentSettings.isVisualEffectEnabled, animate = false)
         switchVisualEffect.isChecked = currentSettings.isVisualEffectEnabled
         switchVisualEffect.setOnCheckedChangeListener { _, isChecked ->
             currentSettings.isVisualEffectEnabled = isChecked
             previewOverlay.isVisualEffectEnabled = isChecked
+            updateVisualEffectCardState(isChecked, animate = true)
             ConfigManager.saveSettings(this, currentSettings)
             previewOverlay.post {
                 previewOverlay.spawnRipple(previewOverlay.width / 2f, previewOverlay.height / 2f)
             }
         }
 
+        updateKeyFlowCardState(currentSettings.isKeyShapeFlowEnabled, animate = false)
         switchKeyShapeFlow.isChecked = currentSettings.isKeyShapeFlowEnabled
         switchKeyShapeFlow.setOnCheckedChangeListener { _, isChecked ->
             currentSettings.isKeyShapeFlowEnabled = isChecked
             previewOverlay.isKeyShapeFlowEnabled = isChecked
+            updateKeyFlowCardState(isChecked, animate = true)
             ConfigManager.saveSettings(this, currentSettings)
             previewOverlay.post {
                 previewOverlay.spawnRipple(previewOverlay.width / 2f, previewOverlay.height / 2f)
@@ -206,15 +217,58 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        updateCustomColorsCardState(currentSettings.useCustomColors, animate = false)
         switchCustomColors.isChecked = currentSettings.useCustomColors
         switchCustomColors.setOnCheckedChangeListener { _, isChecked ->
             currentSettings.useCustomColors = isChecked
             previewOverlay.useCustomColors = isChecked
+            updateCustomColorsCardState(isChecked, animate = true)
             ConfigManager.saveSettings(this, currentSettings)
             previewOverlay.post {
                 previewOverlay.spawnRipple(previewOverlay.width / 2f, previewOverlay.height / 2f)
             }
         }
+    }
+
+    private fun setViewGroupEnabled(viewGroup: ViewGroup, enabled: Boolean) {
+        viewGroup.isEnabled = enabled
+        for (i in 0 until viewGroup.childCount) {
+            val child = viewGroup.getChildAt(i)
+            child.isEnabled = enabled
+            if (child is ViewGroup) {
+                setViewGroupEnabled(child, enabled)
+            }
+        }
+    }
+
+    private fun updateCustomColorsCardState(isEnabled: Boolean, animate: Boolean = false) {
+        val targetAlpha = if (isEnabled) 1.0f else 0.45f
+        if (animate) {
+            layoutCustomColorsControls.animate().alpha(targetAlpha).setDuration(200).start()
+        } else {
+            layoutCustomColorsControls.alpha = targetAlpha
+        }
+        setViewGroupEnabled(layoutCustomColorsControls, isEnabled)
+    }
+
+    private fun updateVisualEffectCardState(isEnabled: Boolean, animate: Boolean = false) {
+        val targetAlpha = if (isEnabled) 1.0f else 0.45f
+        if (animate) {
+            layoutVisualEffectControls.animate().alpha(targetAlpha).setDuration(200).start()
+        } else {
+            layoutVisualEffectControls.alpha = targetAlpha
+        }
+        setViewGroupEnabled(layoutVisualEffectControls, isEnabled)
+    }
+
+    private fun updateKeyFlowCardState(isEnabled: Boolean, animate: Boolean = false) {
+        val targetAlpha = if (isEnabled) 1.0f else 0.45f
+        if (animate) {
+            layoutKeyFlowControls.animate().alpha(targetAlpha).setDuration(200).start()
+        } else {
+            layoutKeyFlowControls.alpha = targetAlpha
+        }
+        setViewGroupEnabled(layoutKeyFlowControls, isEnabled)
     }
 
     private fun setupSwatches() {

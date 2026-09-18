@@ -44,53 +44,68 @@
 
             <com.google.android.material.materialswitch.MaterialSwitch android:id="@+id/switchUnderglow" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="💡 Perimeter Underglow (Mechanical edge ambient &amp; pulse glow)" android:textColor="@color/white" android:textSize="13sp" android:textStyle="bold" />
 
-            <com.google.android.material.materialswitch.MaterialSwitch android:id="@+id/switchVisualEffect" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="✨ Visual Effect Presets (Canvas ripple, sparks &amp; ambient splash)" android:textColor="@color/white" android:textSize="13sp" android:textStyle="bold" />
+            <!-- Custom Dual-Tone Palette Card -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:background="@drawable/preview_box_bg"
+                android:orientation="vertical"
+                android:padding="14dp">
 
-            <com.google.android.material.materialswitch.MaterialSwitch android:id="@+id/switchKeyShapeFlow" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="⌨️ Mechanical Key Matrix (Fluid travels through keycap shapes)" android:textColor="@color/white" android:textSize="13sp" android:textStyle="bold" />
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/switchCustomColors"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="🎨 Custom Dual-Tone Palette (Override theme colors)"
+                    android:textColor="@color/white"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
 
-            <com.google.android.material.materialswitch.MaterialSwitch android:id="@+id/switchKeyBorderOnly" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginStart="16dp" android:layout_marginTop="4dp" android:text="🔲 Border Rim Only (Glow key outlines only, keep letters clear)" android:textColor="#CCCCCC" android:textSize="12sp" />
+                <!-- Child container: dimmed/disabled when switchCustomColors is OFF -->
+                <LinearLayout
+                    android:id="@+id/layoutCustomColorsControls"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
 
-            <!-- Custom Dual-Tone Palette Section -->
-            <com.google.android.material.materialswitch.MaterialSwitch android:id="@+id/switchCustomColors" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:text="🎨 Use Custom Dual-Tone Palette" android:textColor="@color/accent_cyan" android:textSize="14sp" android:textStyle="bold" />
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_marginTop="8dp"
+                        android:layout_marginBottom="12dp"
+                        android:background="#22FFFFFF" />
 
-            <TextView android:id="@+id/tvSwatchesLabel" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="Curated Color Themes:" android:textColor="#AAAAAA" android:textSize="12sp" />
+                    <TextView
+                        android:id="@+id/tvSwatchesLabel"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Curated Color Themes:"
+                        android:textColor="@color/accent_cyan"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
 
-            <com.google.android.material.chip.ChipGroup android:id="@+id/chipGroupSwatches" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" app:singleSelection="true">
+                    <com.google.android.material.chip.ChipGroup
+                        android:id="@+id/chipGroupSwatches"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        app:singleSelection="true">
 
-                <com.google.android.material.chip.Chip android:id="@+id/chipSwatchNothing" style="@style/Widget.Material3.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🔴 Nothing OS" android:textColor="@color/white" app:chipBackgroundColor="@color/card_dark" />
+                        <com.google.android.material.chip.Chip android:id="@+id/chipSwatchNothing" style="@style/Widget.Material3.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🔴 Nothing OS" android:textColor="@color/white" app:chipBackgroundColor="@color/card_dark" />
 
-                <com.google.android.material.chip.Chip android:id="@+id/chipSwatchCyberpunk" style="@style/Widget.Material3.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🟡 Cyberpunk" android:textColor="@color/white" app:chipBackgroundColor="@color/card_dark" />
+                        <com.google.android.material.chip.Chip android:id="@+id/chipSwatchCyberpunk" style="@style/Widget.Material3.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🟡 Cyberpunk" android:textColor="@color/white" app:chipBackgroundColor="@color/card_dark" />
 
-                <com.google.android.material.chip.Chip android:id="@+id/chipSwatchDracula" style="@style/Widget.Material3.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="💜 Dracula" android:textColor="@color/white" app:chipBackgroundColor="@color/card_dark" />
+                        <com.google.android.material.chip.Chip android:id="@+id/chipSwatchDracula" style="@style/Widget.Material3.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="💜 Dracula" android:textColor="@color/white" app:chipBackgroundColor="@color/card_dark" />
 
-                <com.google.android.material.chip.Chip android:id="@+id/chipSwatchSunset" style="@style/Widget.Material3.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🌅 Sunset" android:textColor="@color/white" app:chipBackgroundColor="@color/card_dark" />
+                        <com.google.android.material.chip.Chip android:id="@+id/chipSwatchSunset" style="@style/Widget.Material3.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🌅 Sunset" android:textColor="@color/white" app:chipBackgroundColor="@color/card_dark" />
 
-                <com.google.android.material.chip.Chip android:id="@+id/chipSwatchIce" style="@style/Widget.Material3.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="❄️ Glacier Ice" android:textColor="@color/white" app:chipBackgroundColor="@color/card_dark" />
-            </com.google.android.material.chip.ChipGroup>
+                        <com.google.android.material.chip.Chip android:id="@+id/chipSwatchIce" style="@style/Widget.Material3.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="❄️ Glacier Ice" android:textColor="@color/white" app:chipBackgroundColor="@color/card_dark" />
+                    </com.google.android.material.chip.ChipGroup>
+                </LinearLayout>
+            </LinearLayout>
 
-            <!-- Effect Presets Grid/Chips -->
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:text="Select Visual Effect Preset:" android:textColor="@color/accent_cyan" android:textSize="15sp" android:textStyle="bold" />
-
-            <com.google.android.material.chip.ChipGroup android:id="@+id/chipGroupEffects" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" app:selectionRequired="true" app:singleSelection="true">
-
-                <com.google.android.material.chip.Chip android:id="@+id/chipWater" style="@style/Widget.Material3.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="💧 Fluid Water" android:textColor="@color/white" app:chipBackgroundColor="@color/card_dark" />
-
-                <com.google.android.material.chip.Chip android:id="@+id/chipLightning" style="@style/Widget.Material3.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="⚡ Neon Lightning" android:textColor="@color/white" app:chipBackgroundColor="@color/card_dark" />
-
-                <com.google.android.material.chip.Chip android:id="@+id/chipSupernova" style="@style/Widget.Material3.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🌌 Cosmic Supernova" android:textColor="@color/white" app:chipBackgroundColor="@color/card_dark" />
-
-                <com.google.android.material.chip.Chip android:id="@+id/chipMagma" style="@style/Widget.Material3.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🔥 Molten Magma" android:textColor="@color/white" app:chipBackgroundColor="@color/card_dark" />
-
-                <com.google.android.material.chip.Chip android:id="@+id/chipSonic" style="@style/Widget.Material3.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🔊 Sonic Wave" android:textColor="@color/white" app:chipBackgroundColor="@color/card_dark" />
-
-                <com.google.android.material.chip.Chip android:id="@+id/chipBlackHole" style="@style/Widget.Material3.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🌀 Black Hole" android:textColor="@color/white" app:chipBackgroundColor="@color/card_dark" />
-
-                <com.google.android.material.chip.Chip android:id="@+id/chipAmbientRain" style="@style/Widget.Material3.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🌧️ Ambient Rain" android:textColor="@color/white" app:chipBackgroundColor="@color/card_dark" />
-
-                <com.google.android.material.chip.Chip android:id="@+id/chipChroma" style="@style/Widget.Material3.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🌈 Razer Chroma" android:textColor="@color/white" app:chipBackgroundColor="@color/card_dark" />
-            </com.google.android.material.chip.ChipGroup>
-
-            <!-- 1. Circular Wave (Visual Effect) Tuning Card -->
+            <!-- 1. Visual Effect Presets & Circular Wave Card -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -99,107 +114,200 @@
                 android:orientation="vertical"
                 android:padding="14dp">
 
-                <TextView
-                    android:layout_width="wrap_content"
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/switchVisualEffect"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="🌊 Circular Wave Tuning (Visual Effects)"
-                    android:textColor="@color/accent_cyan"
-                    android:textSize="14sp"
+                    android:text="✨ Visual Effect Presets (Canvas ripple, sparks &amp; ambient splash)"
+                    android:textColor="@color/white"
+                    android:textSize="13sp"
                     android:textStyle="bold" />
 
-                <TextView
-                    android:id="@+id/tvWaveSpeedLabel"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
-                    android:text="Wave Speed: 1.0x (Normal)"
-                    android:textColor="@color/white"
-                    android:textSize="13sp" />
-
-                <com.google.android.material.slider.Slider
-                    android:id="@+id/sliderWaveSpeed"
+                <!-- Child container: dimmed/disabled when switchVisualEffect is OFF -->
+                <LinearLayout
+                    android:id="@+id/layoutVisualEffectControls"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:value="1.0"
-                    android:valueFrom="0.3"
-                    android:valueTo="2.0"
-                    android:stepSize="0.1"
-                    android:saveEnabled="false" />
+                    android:orientation="vertical">
 
-                <TextView
-                    android:id="@+id/tvWaveSizeLabel"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="6dp"
-                    android:text="Wave Size / Reach: 1.0x (Full)"
-                    android:textColor="@color/white"
-                    android:textSize="13sp" />
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_marginTop="8dp"
+                        android:layout_marginBottom="12dp"
+                        android:background="#22FFFFFF" />
 
-                <com.google.android.material.slider.Slider
-                    android:id="@+id/sliderWaveSize"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:value="1.0"
-                    android:valueFrom="0.2"
-                    android:valueTo="1.5"
-                    android:stepSize="0.1"
-                    android:saveEnabled="false" />
+                    <!-- Effect Presets Grid/Chips -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Select Visual Effect Preset:"
+                        android:textColor="@color/accent_cyan"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+
+                    <com.google.android.material.chip.ChipGroup
+                        android:id="@+id/chipGroupEffects"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        app:selectionRequired="true"
+                        app:singleSelection="true">
+
+                        <com.google.android.material.chip.Chip android:id="@+id/chipWater" style="@style/Widget.Material3.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="💧 Fluid Water" android:textColor="@color/white" app:chipBackgroundColor="@color/card_dark" />
+
+                        <com.google.android.material.chip.Chip android:id="@+id/chipLightning" style="@style/Widget.Material3.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="⚡ Neon Lightning" android:textColor="@color/white" app:chipBackgroundColor="@color/card_dark" />
+
+                        <com.google.android.material.chip.Chip android:id="@+id/chipSupernova" style="@style/Widget.Material3.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🌌 Cosmic Supernova" android:textColor="@color/white" app:chipBackgroundColor="@color/card_dark" />
+
+                        <com.google.android.material.chip.Chip android:id="@+id/chipMagma" style="@style/Widget.Material3.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🔥 Molten Magma" android:textColor="@color/white" app:chipBackgroundColor="@color/card_dark" />
+
+                        <com.google.android.material.chip.Chip android:id="@+id/chipSonic" style="@style/Widget.Material3.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🔊 Sonic Wave" android:textColor="@color/white" app:chipBackgroundColor="@color/card_dark" />
+
+                        <com.google.android.material.chip.Chip android:id="@+id/chipBlackHole" style="@style/Widget.Material3.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🌀 Black Hole" android:textColor="@color/white" app:chipBackgroundColor="@color/card_dark" />
+
+                        <com.google.android.material.chip.Chip android:id="@+id/chipAmbientRain" style="@style/Widget.Material3.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🌧️ Ambient Rain" android:textColor="@color/white" app:chipBackgroundColor="@color/card_dark" />
+
+                        <com.google.android.material.chip.Chip android:id="@+id/chipChroma" style="@style/Widget.Material3.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🌈 Razer Chroma" android:textColor="@color/white" app:chipBackgroundColor="@color/card_dark" />
+                    </com.google.android.material.chip.ChipGroup>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:text="🌊 Circular Wave Tuning (Visual Effects)"
+                        android:textColor="@color/accent_cyan"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvWaveSpeedLabel"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="Wave Speed: 1.0x (Normal)"
+                        android:textColor="@color/white"
+                        android:textSize="13sp" />
+
+                    <com.google.android.material.slider.Slider
+                        android:id="@+id/sliderWaveSpeed"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:value="1.0"
+                        android:valueFrom="0.3"
+                        android:valueTo="2.0"
+                        android:stepSize="0.1"
+                        android:saveEnabled="false" />
+
+                    <TextView
+                        android:id="@+id/tvWaveSizeLabel"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:text="Wave Size / Reach: 1.0x (Full)"
+                        android:textColor="@color/white"
+                        android:textSize="13sp" />
+
+                    <com.google.android.material.slider.Slider
+                        android:id="@+id/sliderWaveSize"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:value="1.0"
+                        android:valueFrom="0.2"
+                        android:valueTo="1.5"
+                        android:stepSize="0.1"
+                        android:saveEnabled="false" />
+                </LinearLayout>
             </LinearLayout>
 
             <!-- 2. Keycap Matrix Flow Tuning Card -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
+                android:layout_marginTop="14dp"
                 android:background="@drawable/preview_box_bg"
                 android:orientation="vertical"
                 android:padding="14dp">
 
-                <TextView
-                    android:layout_width="wrap_content"
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/switchKeyShapeFlow"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="⌨️ Keycap Matrix Flow Tuning (Key Shape Glow)"
-                    android:textColor="@color/accent_cyan"
-                    android:textSize="14sp"
+                    android:text="⌨️ Mechanical Key Matrix (Fluid travels through keycap shapes)"
+                    android:textColor="@color/white"
+                    android:textSize="13sp"
                     android:textStyle="bold" />
 
-                <TextView
-                    android:id="@+id/tvKeyFlowSpeedLabel"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
-                    android:text="Key Glow Speed: 1.0x (Normal)"
-                    android:textColor="@color/white"
-                    android:textSize="13sp" />
-
-                <com.google.android.material.slider.Slider
-                    android:id="@+id/sliderKeyFlowSpeed"
+                <!-- Child container: dimmed/disabled when switchKeyShapeFlow is OFF -->
+                <LinearLayout
+                    android:id="@+id/layoutKeyFlowControls"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:value="1.0"
-                    android:valueFrom="0.3"
-                    android:valueTo="2.0"
-                    android:stepSize="0.1"
-                    android:saveEnabled="false" />
+                    android:orientation="vertical">
 
-                <TextView
-                    android:id="@+id/tvKeyFlowSizeLabel"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="6dp"
-                    android:text="Key Glow Spread: 1.0x (Full Keyboard)"
-                    android:textColor="@color/white"
-                    android:textSize="13sp" />
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/switchKeyBorderOnly"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:layout_marginTop="4dp"
+                        android:text="🔲 Border Rim Only (Glow key outlines only, keep letters clear)"
+                        android:textColor="#CCCCCC"
+                        android:textSize="12sp" />
 
-                <com.google.android.material.slider.Slider
-                    android:id="@+id/sliderKeyFlowSize"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:value="1.0"
-                    android:valueFrom="0.2"
-                    android:valueTo="1.5"
-                    android:stepSize="0.1"
-                    android:saveEnabled="false" />
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_marginTop="8dp"
+                        android:layout_marginBottom="12dp"
+                        android:background="#22FFFFFF" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="⌨️ Keycap Matrix Flow Tuning (Key Shape Glow)"
+                        android:textColor="@color/accent_cyan"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvKeyFlowSpeedLabel"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="Key Glow Speed: 1.0x (Normal)"
+                        android:textColor="@color/white"
+                        android:textSize="13sp" />
+
+                    <com.google.android.material.slider.Slider
+                        android:id="@+id/sliderKeyFlowSpeed"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:value="1.0"
+                        android:valueFrom="0.3"
+                        android:valueTo="2.0"
+                        android:stepSize="0.1"
+                        android:saveEnabled="false" />
+
+                    <TextView
+                        android:id="@+id/tvKeyFlowSizeLabel"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:text="Key Glow Spread: 1.0x (Full Keyboard)"
+                        android:textColor="@color/white"
+                        android:textSize="13sp" />
+
+                    <com.google.android.material.slider.Slider
+                        android:id="@+id/sliderKeyFlowSize"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:value="1.0"
+                        android:valueFrom="0.2"
+                        android:valueTo="1.5"
+                        android:stepSize="0.1"
+                        android:saveEnabled="false" />
+                </LinearLayout>
             </LinearLayout>
 
             <!-- Info Tip -->
