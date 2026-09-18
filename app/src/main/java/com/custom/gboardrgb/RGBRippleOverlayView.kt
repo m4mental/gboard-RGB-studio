@@ -179,6 +179,22 @@ class RGBRippleOverlayView(context: Context) : View(context) {
         Color.parseColor("#0088FF"), Color.parseColor("#00FF66")
     )
 
+    private val lightningColors = intArrayOf(
+        Color.parseColor("#00F5FF"), Color.parseColor("#FFFFFF"),
+        Color.parseColor("#B026FF"), Color.parseColor("#00FFFF"), Color.parseColor("#00F5FF")
+    )
+
+    private val supernovaColors = intArrayOf(
+        Color.parseColor("#FF00FF"), Color.parseColor("#00FFFF"),
+        Color.parseColor("#FFEE55"), Color.parseColor("#FFFFFF"),
+        Color.parseColor("#AA00FF"), Color.parseColor("#FF00FF")
+    )
+
+    private val blackHoleColors = intArrayOf(
+        Color.parseColor("#7A00FF"), Color.parseColor("#B026FF"),
+        Color.parseColor("#00F5FF"), Color.parseColor("#2A0066"), Color.parseColor("#7A00FF")
+    )
+
     private fun getActiveLiquidPalette(): IntArray {
         if (useCustomColors) {
             return intArrayOf(
@@ -197,6 +213,24 @@ class RGBRippleOverlayView(context: Context) : View(context) {
             )
         }
         return chromaColors
+    }
+
+    private fun getActivePresetPalette(type: EffectType): IntArray {
+        if (useCustomColors) {
+            return intArrayOf(
+                customColorPrimary, customColorSecondary, customColorPrimary,
+                customColorSecondary, customColorPrimary
+            )
+        }
+        return when (type) {
+            EffectType.RAZER_CHROMA -> chromaColors
+            EffectType.MOLTEN_MAGMA -> magmaColors
+            EffectType.SONIC_WAVE -> sonicColors
+            EffectType.NEON_LIGHTNING -> lightningColors
+            EffectType.COSMIC_SUPERNOVA -> supernovaColors
+            EffectType.BLACK_HOLE -> blackHoleColors
+            EffectType.WATER_DROP, EffectType.AMBIENT_RAIN -> liquidWaterPalette
+        }
     }
 
     private val activeEffects = CopyOnWriteArrayList<ActiveEffect>()
@@ -279,6 +313,7 @@ class RGBRippleOverlayView(context: Context) : View(context) {
         val maxRadius: Float,
         val waveMaxRadius: Float = maxRadius,
         val keyFlowMaxRadius: Float = maxRadius,
+        val colorPhaseOffset: Float = 0f,
         val isMiniDrop: Boolean = false,
         val particles: List<Particle> = emptyList(),
         val lightningBolts: List<LightningBolt> = emptyList()
@@ -429,6 +464,7 @@ class RGBRippleOverlayView(context: Context) : View(context) {
             else -> emptyList()
         }
 
+        val randomPhase = Random.nextFloat()
         val effect = ActiveEffect(
             type = effectType,
             originX = touchX,
@@ -439,6 +475,7 @@ class RGBRippleOverlayView(context: Context) : View(context) {
             maxRadius = baseWaveRadius,
             waveMaxRadius = baseWaveRadius,
             keyFlowMaxRadius = baseKeyFlowRadius,
+            colorPhaseOffset = randomPhase,
             isMiniDrop = isMiniDrop,
             particles = particles,
             lightningBolts = lightningBolts
@@ -660,7 +697,7 @@ class RGBRippleOverlayView(context: Context) : View(context) {
                 val kp = fx.keyFlowProgress
                 val energyFade = getEffectFade(kp, 1.3f, keyFlowSpeedMultiplier)
                 val baseR = kp * fx.keyFlowMaxRadius
-                val palette = if (fx.type == EffectType.RAZER_CHROMA) getActiveChromaPalette() else getActiveLiquidPalette()
+                val palette = getActivePresetPalette(fx.type)
                 drawKeycapMatrixFlow(canvas, fx, keycaps, kp, baseR, energyFade, palette)
             }
 
@@ -707,7 +744,7 @@ class RGBRippleOverlayView(context: Context) : View(context) {
 
         val shader = SweepGradient(0f, 0f, palette, null)
         val mat = Matrix()
-        mat.setRotate(p * 90f)
+        mat.setRotate(fx.colorPhaseOffset * 360f + p * 90f)
         shader.setLocalMatrix(mat)
 
         if (p < 0.28f) {
@@ -804,6 +841,9 @@ class RGBRippleOverlayView(context: Context) : View(context) {
             intArrayOf(Color.parseColor("#FF00FF"), Color.parseColor("#00FFFF"), Color.parseColor("#FFEE55"))
         }
         val shockShader = SweepGradient(fx.originX, fx.originY, palette, null)
+        val mat = Matrix()
+        mat.setRotate(fx.colorPhaseOffset * 360f, fx.originX, fx.originY)
+        shockShader.setLocalMatrix(mat)
         glowPaint.shader = shockShader
         glowPaint.strokeWidth = 26f * fade + 4f
         glowPaint.alpha = (fade * 140).toInt().coerceIn(0, 255)
@@ -837,6 +877,9 @@ class RGBRippleOverlayView(context: Context) : View(context) {
             magmaColors
         }
         val shader = SweepGradient(0f, 0f, palette, null)
+        val mat = Matrix()
+        mat.setRotate(fx.colorPhaseOffset * 360f)
+        shader.setLocalMatrix(mat)
         glowPaint.shader = shader
         glowPaint.strokeWidth = 32f * fade + 6f
         glowPaint.alpha = (fade * 160).toInt().coerceIn(0, 255)
@@ -868,6 +911,9 @@ class RGBRippleOverlayView(context: Context) : View(context) {
             sonicColors
         }
         val shader = SweepGradient(fx.originX, fx.originY, palette, null)
+        val mat = Matrix()
+        mat.setRotate(fx.colorPhaseOffset * 360f, fx.originX, fx.originY)
+        shader.setLocalMatrix(mat)
         strokePaint.shader = shader
         strokePaint.strokeWidth = 14f * fade + 3f
         strokePaint.alpha = (fade * 240).toInt().coerceIn(0, 255)
@@ -909,8 +955,11 @@ class RGBRippleOverlayView(context: Context) : View(context) {
 
             canvas.save()
             canvas.translate(fx.originX, fx.originY)
-            val palette = getActiveChromaPalette()
+            val palette = if (useCustomColors) getActiveLiquidPalette() else blackHoleColors
             val shader = SweepGradient(0f, 0f, palette, null)
+            val mat = Matrix()
+            mat.setRotate(fx.colorPhaseOffset * 360f)
+            shader.setLocalMatrix(mat)
             strokePaint.shader = shader
             strokePaint.strokeWidth = 22f * fade + 4f
             strokePaint.alpha = (fade * 255).toInt().coerceIn(0, 255)
@@ -930,6 +979,9 @@ class RGBRippleOverlayView(context: Context) : View(context) {
         canvas.translate(fx.originX, fx.originY)
 
         val shader = SweepGradient(0f, 0f, palette, null)
+        val mat = Matrix()
+        mat.setRotate(fx.colorPhaseOffset * 360f + p * 60f)
+        shader.setLocalMatrix(mat)
         glowPaint.shader = shader
         glowPaint.strokeWidth = 36f * fade + 8f
         glowPaint.alpha = (fade * 120).toInt().coerceIn(0, 255)
@@ -1337,7 +1389,8 @@ class RGBRippleOverlayView(context: Context) : View(context) {
                 if (intensity <= 0.03f) continue
 
                 val angle = atan2(cy - fx.originY, cx - fx.originX)
-                val normAngle = ((angle + Math.PI) / (2 * Math.PI)).toFloat().coerceIn(0f, 1f)
+                val rawAngle = ((angle + Math.PI) / (2 * Math.PI)).toFloat()
+                val normAngle = (rawAngle + fx.colorPhaseOffset).let { it - floor(it) }.coerceIn(0f, 1f)
                 val keyColor = interpolateColorFromPalette(palette, normAngle)
 
                 // 1. Soft liquid glow inside the keycap (disabled when Border Rim Only mode is active)

@@ -54,7 +54,15 @@ class MainHook : IXposedHookLoadPackage {
             override fun run() {
                 if (isHoldingKey) {
                     val overlay = currentOverlayRef?.get()
-                    overlay?.spawnRipple(holdOverlayX, holdOverlayY)
+                    if (overlay != null) {
+                        val density = overlay.resources.displayMetrics.density
+                        val jitterRadius = 5.5f * density
+                        val jitterAngle = kotlin.random.Random.nextFloat() * 2f * Math.PI.toFloat()
+                        val jitterDist = kotlin.random.Random.nextFloat() * jitterRadius
+                        val jX = holdOverlayX + kotlin.math.cos(jitterAngle) * jitterDist
+                        val jY = holdOverlayY + kotlin.math.sin(jitterAngle) * jitterDist
+                        overlay.spawnRipple(jX, jY)
+                    }
                     val ctx = currentInputViewRef?.get()?.context ?: overlay?.context ?: currentRootViewRef?.get()?.context
                     if (ctx != null) {
                         triggerHaptic(ctx)
