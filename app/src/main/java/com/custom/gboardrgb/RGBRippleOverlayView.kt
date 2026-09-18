@@ -1091,17 +1091,18 @@ class RGBRippleOverlayView(context: Context) : View(context) {
 
     private fun isRoundFunctionKey(view: View): Boolean {
         val desc = view.contentDescription?.toString()?.lowercase() ?: ""
-        // Backspace, delete, shift, and caps lock are square squircle keys like letters.
-        // Only bottom-row function/action keys like ?123, symbols, enter, search, emoji are round pills.
+        // Backspace, delete, shift, caps lock, comma, period, dot, and emoji are SQUARE squircle keys like letter keys A, S, D, F.
         if (desc.contains("shift") || desc.contains("caps") ||
-            desc.contains("delete") || desc.contains("backspace")) {
+            desc.contains("delete") || desc.contains("backspace") ||
+            desc.contains("comma") || desc.contains("period") ||
+            desc.contains("dot") || desc.contains("emoji")) {
             return false
         }
-        if (desc.contains("123") || desc.contains("symbol") ||
-            desc.contains("enter") || desc.contains("search") ||
-            desc.contains("comma") || desc.contains("period") ||
-            desc.contains("emoji") || desc.contains("language") ||
-            desc.contains("switch")) {
+        // Only bottom-corner action/function keys (?123, enter, search, send, action) are round pills.
+        if (desc.contains("123") || desc.contains("enter") ||
+            desc.contains("search") || desc.contains("send") ||
+            desc.contains("action") || desc.contains("done") ||
+            desc.contains("go")) {
             return true
         }
         if (view is ViewGroup) {
@@ -1109,14 +1110,15 @@ class RGBRippleOverlayView(context: Context) : View(context) {
                 val c = view.getChildAt(i)
                 val cDesc = c.contentDescription?.toString()?.lowercase() ?: ""
                 if (cDesc.contains("shift") || cDesc.contains("caps") ||
-                    cDesc.contains("delete") || cDesc.contains("backspace")) {
+                    cDesc.contains("delete") || cDesc.contains("backspace") ||
+                    cDesc.contains("comma") || cDesc.contains("period") ||
+                    cDesc.contains("dot") || cDesc.contains("emoji")) {
                     return false
                 }
-                if (cDesc.contains("123") || cDesc.contains("symbol") ||
-                    cDesc.contains("enter") || cDesc.contains("search") ||
-                    cDesc.contains("comma") || cDesc.contains("period") ||
-                    cDesc.contains("emoji") || cDesc.contains("language") ||
-                    cDesc.contains("switch")) {
+                if (cDesc.contains("123") || cDesc.contains("enter") ||
+                    cDesc.contains("search") || cDesc.contains("send") ||
+                    cDesc.contains("action") || cDesc.contains("done") ||
+                    cDesc.contains("go")) {
                     return true
                 }
                 if (c is android.widget.TextView) {
@@ -1228,11 +1230,20 @@ class RGBRippleOverlayView(context: Context) : View(context) {
                 // Last key is 'Enter' -> round / pill
                 last.cornerRadius = min(last.rect.width(), last.rect.height()) / 2f
 
-                // In bottom row, all non-spacebar keys (comma, period, emoji) are also round pills
+                // Comma, emoji, dot have the same square squircle cornerRadius as letter keys (A, S, D, F)
+                val stdLetterRadius = (11.5f * density).coerceIn(8f * density, 14f * density)
+                val avgLetterRadius = if (rows.size >= 2) {
+                    val letterRow = rows[1] // Row 1 (A..L)
+                    val r = letterRow.map { it.cornerRadius }.average().toFloat()
+                    if (r > 0f) r else stdLetterRadius
+                } else stdLetterRadius
+
                 val maxKeyW = row.maxOfOrNull { it.rect.width() } ?: 0f
-                for (k in row) {
+                for (i in 1 until row.size - 1) {
+                    val k = row[i]
                     if (k.rect.width() < maxKeyW * 0.55f) {
-                        k.cornerRadius = min(k.rect.width(), k.rect.height()) / 2f
+                        // Comma, emoji, dot -> squircle matching letter keys A, S, D, F
+                        k.cornerRadius = avgLetterRadius
                     }
                 }
                 continue
@@ -1341,18 +1352,24 @@ class RGBRippleOverlayView(context: Context) : View(context) {
         val sideKeyW3 = (totalW - paddingX * 2 - spaceW - keyGap * 4) / 4f
 
         var currX3 = kbLeft + paddingX
-        for (k in 0..1) {
-            // ?123 and comma -> round / pill
-            outList.add(KeycapInfo(RectF(currX3, y3_1, currX3 + sideKeyW3, y3_2), min(sideKeyW3, rowH) / 2f))
-            currX3 += sideKeyW3 + keyGap
-        }
+        // ?123 -> round / pill
+        outList.add(KeycapInfo(RectF(currX3, y3_1, currX3 + sideKeyW3, y3_2), min(sideKeyW3, rowH) / 2f))
+        currX3 += sideKeyW3 + keyGap
+
+        // Comma -> square squircle (stdRadius, matches letter keys A, S, D, F)
+        outList.add(KeycapInfo(RectF(currX3, y3_1, currX3 + sideKeyW3, y3_2), stdRadius))
+        currX3 += sideKeyW3 + keyGap
+
+        // Spacebar
         outList.add(KeycapInfo(RectF(currX3, y3_1, currX3 + spaceW, y3_2), 13f * density))
         currX3 += spaceW + keyGap
-        for (k in 0..1) {
-            // period and enter -> round / pill
-            outList.add(KeycapInfo(RectF(currX3, y3_1, currX3 + sideKeyW3, y3_2), min(sideKeyW3, rowH) / 2f))
-            currX3 += sideKeyW3 + keyGap
-        }
+
+        // Period / Dot -> square squircle (stdRadius, matches letter keys A, S, D, F)
+        outList.add(KeycapInfo(RectF(currX3, y3_1, currX3 + sideKeyW3, y3_2), stdRadius))
+        currX3 += sideKeyW3 + keyGap
+
+        // Enter -> round / pill
+        outList.add(KeycapInfo(RectF(currX3, y3_1, currX3 + sideKeyW3, y3_2), min(sideKeyW3, rowH) / 2f))
     }
 
     private fun drawKeycapMatrixFlow(
