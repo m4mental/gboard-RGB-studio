@@ -26,11 +26,14 @@ class MainActivity : AppCompatActivity() {
     private lateinit var layoutThemes: View
 
     private lateinit var tvActiveThemeStatus: TextView
-    private lateinit var switch3dBlackBorders: MaterialSwitch
-    private lateinit var btnApply3dBlack: MaterialButton
-    private lateinit var switch3dWhiteBorders: MaterialSwitch
-    private lateinit var btnApply3dWhite: MaterialButton
-    private lateinit var btnRestoreStock: MaterialButton
+    private lateinit var rbThemeStock: android.widget.RadioButton
+    private lateinit var rbThemeBlack: android.widget.RadioButton
+    private lateinit var rbThemeWhite: android.widget.RadioButton
+    private lateinit var cardThemeStock: View
+    private lateinit var cardThemeBlack: View
+    private lateinit var cardThemeWhite: View
+    private lateinit var switchThemeBorders: MaterialSwitch
+    private lateinit var btnApplyTheme: MaterialButton
 
     private lateinit var previewOverlay: RGBRippleOverlayView
     private lateinit var tvWaveSpeedLabel: TextView
@@ -65,11 +68,14 @@ class MainActivity : AppCompatActivity() {
         layoutThemes = findViewById(R.id.layoutThemes)
 
         tvActiveThemeStatus = findViewById(R.id.tvActiveThemeStatus)
-        switch3dBlackBorders = findViewById(R.id.switch3dBlackBorders)
-        btnApply3dBlack = findViewById(R.id.btnApply3dBlack)
-        switch3dWhiteBorders = findViewById(R.id.switch3dWhiteBorders)
-        btnApply3dWhite = findViewById(R.id.btnApply3dWhite)
-        btnRestoreStock = findViewById(R.id.btnRestoreStock)
+        rbThemeStock = findViewById(R.id.rbThemeStock)
+        rbThemeBlack = findViewById(R.id.rbThemeBlack)
+        rbThemeWhite = findViewById(R.id.rbThemeWhite)
+        cardThemeStock = findViewById(R.id.cardThemeStock)
+        cardThemeBlack = findViewById(R.id.cardThemeBlack)
+        cardThemeWhite = findViewById(R.id.cardThemeWhite)
+        switchThemeBorders = findViewById(R.id.switchThemeBorders)
+        btnApplyTheme = findViewById(R.id.btnApplyTheme)
 
         tvWaveSpeedLabel = findViewById(R.id.tvWaveSpeedLabel)
         tvWaveSizeLabel = findViewById(R.id.tvWaveSizeLabel)
@@ -473,50 +479,83 @@ class MainActivity : AppCompatActivity() {
     private fun setupThemeControls() {
         refreshActiveThemeDisplay()
 
-        btnApply3dBlack.setOnClickListener {
-            btnApply3dBlack.isEnabled = false
-            btnApply3dBlack.text = "⏳ Deploying 3D Black..."
-            lifecycleScope.launch {
-                val withBorders = switch3dBlackBorders.isChecked
-                val res = ThemeInstaller.applyTheme(this@MainActivity, "3D_Black.zip", withBorders)
-                btnApply3dBlack.isEnabled = true
-                btnApply3dBlack.text = "🚀 Apply 3D Black Theme"
-                if (res.isSuccess) {
-                    Toast.makeText(this@MainActivity, "🌑 3D Black Theme applied! Open Gboard.", Toast.LENGTH_LONG).show()
-                    refreshActiveThemeDisplay()
-                } else {
-                    Toast.makeText(this@MainActivity, "Failed: ${res.exceptionOrNull()?.message}", Toast.LENGTH_LONG).show()
-                }
-            }
+        // Card click listeners
+        cardThemeStock.setOnClickListener {
+            rbThemeStock.isChecked = true
+            rbThemeBlack.isChecked = false
+            rbThemeWhite.isChecked = false
+        }
+        rbThemeStock.setOnClickListener {
+            rbThemeStock.isChecked = true
+            rbThemeBlack.isChecked = false
+            rbThemeWhite.isChecked = false
         }
 
-        btnApply3dWhite.setOnClickListener {
-            btnApply3dWhite.isEnabled = false
-            btnApply3dWhite.text = "⏳ Deploying 3D White..."
-            lifecycleScope.launch {
-                val withBorders = switch3dWhiteBorders.isChecked
-                val res = ThemeInstaller.applyTheme(this@MainActivity, "3D_White.zip", withBorders)
-                btnApply3dWhite.isEnabled = true
-                btnApply3dWhite.text = "Apply 3D White Theme"
-                if (res.isSuccess) {
-                    Toast.makeText(this@MainActivity, "⚪ 3D White Theme applied! Open Gboard.", Toast.LENGTH_LONG).show()
-                    refreshActiveThemeDisplay()
-                } else {
-                    Toast.makeText(this@MainActivity, "Failed: ${res.exceptionOrNull()?.message}", Toast.LENGTH_LONG).show()
-                }
-            }
+        cardThemeBlack.setOnClickListener {
+            rbThemeStock.isChecked = false
+            rbThemeBlack.isChecked = true
+            rbThemeWhite.isChecked = false
+        }
+        rbThemeBlack.setOnClickListener {
+            rbThemeStock.isChecked = false
+            rbThemeBlack.isChecked = true
+            rbThemeWhite.isChecked = false
         }
 
-        btnRestoreStock.setOnClickListener {
-            btnRestoreStock.isEnabled = false
+        cardThemeWhite.setOnClickListener {
+            rbThemeStock.isChecked = false
+            rbThemeBlack.isChecked = false
+            rbThemeWhite.isChecked = true
+        }
+        rbThemeWhite.setOnClickListener {
+            rbThemeStock.isChecked = false
+            rbThemeBlack.isChecked = false
+            rbThemeWhite.isChecked = true
+        }
+
+        btnApplyTheme.setOnClickListener {
+            btnApplyTheme.isEnabled = false
+            val withBorders = switchThemeBorders.isChecked
+
             lifecycleScope.launch {
-                val res = ThemeInstaller.restoreDefaultTheme(this@MainActivity)
-                btnRestoreStock.isEnabled = true
-                if (res.isSuccess) {
-                    Toast.makeText(this@MainActivity, "🔄 Stock theme restored.", Toast.LENGTH_SHORT).show()
-                    refreshActiveThemeDisplay()
-                } else {
-                    Toast.makeText(this@MainActivity, "Failed: ${res.exceptionOrNull()?.message}", Toast.LENGTH_SHORT).show()
+                when {
+                    rbThemeBlack.isChecked -> {
+                        btnApplyTheme.text = "⏳ Deploying 3D Black..."
+                        val res = ThemeInstaller.applyTheme(this@MainActivity, "3D_Black.zip", withBorders)
+                        btnApplyTheme.isEnabled = true
+                        btnApplyTheme.text = "🚀 Apply Theme to Gboard"
+                        if (res.isSuccess) {
+                            Toast.makeText(this@MainActivity, "🌑 3D Black Theme applied! Open Gboard.", Toast.LENGTH_LONG).show()
+                            refreshActiveThemeDisplay()
+                        } else {
+                            Toast.makeText(this@MainActivity, "Failed: ${res.exceptionOrNull()?.message}", Toast.LENGTH_LONG).show()
+                        }
+                    }
+                    rbThemeWhite.isChecked -> {
+                        btnApplyTheme.text = "⏳ Deploying 3D White..."
+                        val res = ThemeInstaller.applyTheme(this@MainActivity, "3D_White.zip", withBorders)
+                        btnApplyTheme.isEnabled = true
+                        btnApplyTheme.text = "🚀 Apply Theme to Gboard"
+                        if (res.isSuccess) {
+                            Toast.makeText(this@MainActivity, "⚪ 3D White Theme applied! Open Gboard.", Toast.LENGTH_LONG).show()
+                            refreshActiveThemeDisplay()
+                        } else {
+                            Toast.makeText(this@MainActivity, "Failed: ${res.exceptionOrNull()?.message}", Toast.LENGTH_LONG).show()
+                        }
+                    }
+                    else -> {
+                        // Stock / No Theme selected
+                        btnApplyTheme.text = "⏳ Restoring Stock Gboard..."
+                        val res = ThemeInstaller.restoreDefaultTheme(this@MainActivity)
+                        btnApplyTheme.isEnabled = true
+                        btnApplyTheme.text = "🚀 Apply Theme to Gboard"
+                        if (res.isSuccess) {
+                            Toast.makeText(this@MainActivity, "🔄 Stock Gboard theme restored (No theme applied).", Toast.LENGTH_SHORT).show()
+                            refreshActiveThemeDisplay()
+                        } else {
+                            Toast.makeText(this@MainActivity, "Failed: ${res.exceptionOrNull()?.message}", Toast.LENGTH_SHORT).show()
+                        }
+                    }
                 }
             }
         }
@@ -525,13 +564,26 @@ class MainActivity : AppCompatActivity() {
     private fun refreshActiveThemeDisplay() {
         lifecycleScope.launch {
             val active = ThemeInstaller.getActiveThemeName()
-            val text = when {
-                active.contains("3D_Black", ignoreCase = true) -> "Current Theme: 🌑 3D Black Edition (Active)"
-                active.contains("3D_White", ignoreCase = true) -> "Current Theme: ⚪ 3D White Edition (Active)"
-                active.isNotBlank() -> "Current Theme: $active"
-                else -> "Current Theme: System Default / Stock"
+            when {
+                active.contains("3D_Black", ignoreCase = true) -> {
+                    tvActiveThemeStatus.text = "Current Theme: 🌑 3D Black Edition (Active)"
+                    rbThemeBlack.isChecked = true
+                    rbThemeWhite.isChecked = false
+                    rbThemeStock.isChecked = false
+                }
+                active.contains("3D_White", ignoreCase = true) -> {
+                    tvActiveThemeStatus.text = "Current Theme: ⚪ 3D White Edition (Active)"
+                    rbThemeWhite.isChecked = true
+                    rbThemeBlack.isChecked = false
+                    rbThemeStock.isChecked = false
+                }
+                else -> {
+                    tvActiveThemeStatus.text = "Current Theme: 🟢 Stock Gboard (No Theme Applied)"
+                    rbThemeStock.isChecked = true
+                    rbThemeBlack.isChecked = false
+                    rbThemeWhite.isChecked = false
+                }
             }
-            tvActiveThemeStatus.text = text
         }
     }
 }
