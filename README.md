@@ -33,11 +33,9 @@ All effects render inside a custom hardware-accelerated canvas overlay dynamical
   - Control app redesign featuring high-end modular cards for **Visual Effect Presets**, **Mechanical Key Matrix**, and **Custom Dual-Tone Palette**.
   - Intelligent real-time control state: Turning any master switch OFF automatically dims child sliders and chips to `45% alpha` and disables interaction for an authentic high-end RGB suite (Corsair iCUE / Razer Synapse style).
 
-- 🎨 **Built-in 3D Mechanical Themes (Direct Root Engine):**
-  - **3D Pitch-Black OLED Edition:** True pitch-black AMOLED canvas with 3D elevated keycaps and crisp borders, built specifically to make RGB luminescence pop!
-  - **3D White Edition:** Frosted light aesthetic with subtle mechanical elevation.
-  - **Stock Theme Restore:** Instant one-tap restore back to default Gboard theme.
-  - Applies directly via Root (`su`) without needing Rboard Theme Manager.
+- 🎨 **Universal Rboard & AMOLED Theme Compatibility:**
+  - 100% compatible with **Rboard Theme Manager** and all stock Gboard AMOLED / Pitch Black themes.
+  - Automatically adapts its lighting shaders, drop shadows, and particle effects to match any active Rboard or Material You theme without conflicts.
 
 - 🪟 **Complete Floating & One-Handed Keyboard Mode Support:**
   - Full compatibility with Gboard's **Floating Mode** and **One-Handed Mode**.
