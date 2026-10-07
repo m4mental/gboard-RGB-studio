@@ -39,22 +39,42 @@ class MainActivity : AppCompatActivity() {
     private lateinit var layoutKeyFlowControls: LinearLayout
 
     private var currentSettings = ConfigManager.Settings()
+    private var isUpdatingFromSwatch = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
         currentSettings = ConfigManager.loadSettings(this)
+        ConfigManager.saveSettings(this, currentSettings)
 
-        // Restore Gboard to default stock once so Rboard can take full control
-        lifecycleScope.launch {
-            try {
-                val sp = getSharedPreferences("app_clean_state", MODE_PRIVATE)
-                if (!sp.getBoolean("gboard_theme_cleared_for_rboard", false)) {
-                    ThemeInstaller.restoreDefaultTheme(this@MainActivity)
-                    sp.edit().putBoolean("gboard_theme_cleared_for_rboard", true).apply()
+        val sp = getSharedPreferences("app_clean_state", MODE_PRIVATE)
+        if (!sp.getBoolean("gboard_theme_cleared_for_rboard", false)) {
+            com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+                .setTitle("Restore Stock Theme")
+                .setMessage("To ensure Gboard RGB Studio and Rboard themes function correctly, Gboard's theme configuration can be restored to stock. Note that this action will force-stop Gboard.\n\nDo you want to proceed?")
+                .setPositiveButton("Restore") { _, _ ->
+                    lifecycleScope.launch {
+                        val result = ThemeInstaller.restoreDefaultTheme(this@MainActivity)
+                        if (result.isSuccess) {
+                            sp.edit().putBoolean("gboard_theme_cleared_for_rboard", true).apply()
+                            com.google.android.material.snackbar.Snackbar.make(
+                                findViewById(android.R.id.content),
+                                result.getOrNull() ?: "Stock Gboard theme restored.",
+                                com.google.android.material.snackbar.Snackbar.LENGTH_LONG
+                            ).show()
+                        } else {
+                            val failureReason = result.exceptionOrNull()?.message ?: "Unknown error"
+                            com.google.android.material.snackbar.Snackbar.make(
+                                findViewById(android.R.id.content),
+                                "Theme restore failed: $failureReason",
+                                com.google.android.material.snackbar.Snackbar.LENGTH_LONG
+                            ).show()
+                        }
+                    }
                 }
-            } catch (_: Exception) {}
+                .setNegativeButton("Cancel", null)
+                .show()
         }
 
         tvWaveSpeedLabel = findViewById(R.id.tvWaveSpeedLabel)
@@ -80,6 +100,12 @@ class MainActivity : AppCompatActivity() {
         setupSliders()
         setupSwitches()
         setupSwatches()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        currentSettings = ConfigManager.loadSettings(this)
+        ConfigManager.saveSettings(this, currentSettings)
     }
 
     private fun setupPreviewCanvas() {
@@ -113,10 +139,11 @@ class MainActivity : AppCompatActivity() {
         }
         previewContainer.addView(previewOverlay)
 
-        previewContainer.setOnTouchListener { _, event ->
+        previewContainer.setOnTouchListener { v, event ->
             val action = event.actionMasked
             when (action) {
                 MotionEvent.ACTION_DOWN, MotionEvent.ACTION_POINTER_DOWN -> {
+                    v.parent?.requestDisallowInterceptTouchEvent(true)
                     val idx = if (action == MotionEvent.ACTION_POINTER_DOWN) event.actionIndex else 0
                     previewOverlay.spawnRipple(event.getX(idx), event.getY(idx))
                 }
@@ -203,6 +230,7 @@ class MainActivity : AppCompatActivity() {
         updateCustomColorsCardState(currentSettings.useCustomColors, animate = false)
         switchCustomColors.isChecked = currentSettings.useCustomColors
         switchCustomColors.setOnCheckedChangeListener { _, isChecked ->
+            if (isUpdatingFromSwatch) return@setOnCheckedChangeListener
             currentSettings.useCustomColors = isChecked
             previewOverlay.useCustomColors = isChecked
             updateCustomColorsCardState(isChecked, animate = true)
@@ -263,6 +291,17 @@ class MainActivity : AppCompatActivity() {
             R.id.chipSwatchIce to Pair("#00F5FF", "#FFFFFF")
         )
 
+        // Initialize swatch selection from saved custom colors
+        if (currentSettings.useCustomColors) {
+            val matchedChipId = swatchMap.entries.find { entry ->
+                entry.value.first.equals(currentSettings.colorPrimary, ignoreCase = true) &&
+                    entry.value.second.equals(currentSettings.colorSecondary, ignoreCase = true)
+            }?.key
+            if (matchedChipId != null) {
+                chipGroupSwatches.check(matchedChipId)
+            }
+        }
+
         chipGroupSwatches.setOnCheckedStateChangeListener { _, checkedIds ->
             val selectedId = checkedIds.firstOrNull() ?: return@setOnCheckedStateChangeListener
             val colors = swatchMap[selectedId] ?: return@setOnCheckedStateChangeListener
@@ -271,10 +310,19 @@ class MainActivity : AppCompatActivity() {
             currentSettings.colorPrimary = colors.first
             currentSettings.colorSecondary = colors.second
 
-            switchCustomColors.isChecked = true
+            try {
+                isUpdatingFromSwatch = true
+                switchCustomColors.isChecked = true
+                updateCustomColorsCardState(true, animate = true)
+            } finally {
+                isUpdatingFromSwatch = false
+            }
+
             previewOverlay.useCustomColors = true
-            previewOverlay.customColorPrimary = Color.parseColor(colors.first)
-            previewOverlay.customColorSecondary = Color.parseColor(colors.second)
+            try {
+                previewOverlay.customColorPrimary = Color.parseColor(colors.first)
+                previewOverlay.customColorSecondary = Color.parseColor(colors.second)
+            } catch (_: Exception) {}
 
             ConfigManager.saveSettings(this, currentSettings)
 

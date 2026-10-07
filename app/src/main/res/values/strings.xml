@@ -1,6 +1,49 @@
 <resources>
-    <string name="app_name">Gboard RGB Wave</string>
-    <string name="module_desc">Reactive RGB Rainbow Wave for Gboard</string>
+    <string name="app_name">Gboard RGB Studio</string>
+    <string name="module_desc">Fluid &amp; Reactive RGB Visual Effects Studio for Gboard</string>
     <string name="status_enabled">LSPosed Module Installed</string>
     <string name="preview_instruction">Tap anywhere below to test the RGB Wave effect!</string>
+
+    <string name="subtitle_effects_studio">8 Fluid &amp; Reactive Visual Effects Studio</string>
+    <string name="preview_title">Live Interactive Preview (Tap inside to test):</string>
+    <string name="preview_hint">Tap anywhere in this box to trigger effect</string>
+    <string name="test_input_title">Test Typing on Gboard Here:</string>
+    <string name="test_input_hint">Tap here to open Gboard...</string>
+
+    <string name="switch_ambient_rain">🌧️ Idle Ambient Raindrops (Every 2s on keyboard)</string>
+    <string name="switch_turbo_dynamics">🔥 Turbo Typing Speed (Extra glow &amp; sparks when typing fast)</string>
+    <string name="switch_glide_trail">✨ Swipe / Glide Neon Laser Trail</string>
+    <string name="switch_haptic">📳 Tactile Haptic Micro-Tick (Linear physics feedback)</string>
+    <string name="switch_underglow">💡 Perimeter Underglow (Mechanical edge ambient &amp; pulse glow)</string>
+
+    <string name="switch_custom_colors">🎨 Custom Dual-Tone Palette (Override theme colors)</string>
+    <string name="curated_color_themes">Curated Color Themes:</string>
+    <string name="swatch_nothing">🔴 Nothing OS</string>
+    <string name="swatch_cyberpunk">🟡 Cyberpunk</string>
+    <string name="swatch_dracula">💜 Dracula</string>
+    <string name="swatch_sunset">🌅 Sunset</string>
+    <string name="swatch_ice">❄️ Glacier Ice</string>
+
+    <string name="switch_visual_effect">✨ Visual Effect Presets (Canvas ripple, sparks &amp; ambient splash)</string>
+    <string name="select_effect_preset">Select Visual Effect Preset:</string>
+    <string name="effect_water">💧 Fluid Water</string>
+    <string name="effect_lightning">⚡ Neon Lightning</string>
+    <string name="effect_supernova">🌌 Cosmic Supernova</string>
+    <string name="effect_magma">🔥 Molten Magma</string>
+    <string name="effect_sonic">🔊 Sonic Wave</string>
+    <string name="effect_black_hole">🌀 Black Hole</string>
+    <string name="effect_ambient_rain">🌧️ Ambient Rain</string>
+    <string name="effect_chroma">🌈 Razer Chroma</string>
+
+    <string name="tuning_circular_wave">🌊 Circular Wave Tuning (Visual Effects)</string>
+    <string name="wave_speed_default">Wave Speed: 1.0x (Normal)</string>
+    <string name="wave_size_default">Wave Size / Reach: 1.0x (Full)</string>
+
+    <string name="switch_key_shape_flow">⌨️ Mechanical Key Matrix (Fluid travels through keycap shapes)</string>
+    <string name="switch_key_border_only">🔲 Border Rim Only (Glow key outlines only, keep letters clear)</string>
+    <string name="tuning_key_matrix_flow">⌨️ Keycap Matrix Flow Tuning (Key Shape Glow)</string>
+    <string name="key_glow_speed_default">Key Glow Speed: 1.0x (Normal)</string>
+    <string name="key_glow_spread_default">Key Glow Spread: 1.0x (Full Keyboard)</string>
+
+    <string name="info_tip">💡 Tip: Settings sync to Gboard in REAL TIME! Tapping any preset or switch updates your keyboard instantly without restarting Gboard.</string>
 </resources>

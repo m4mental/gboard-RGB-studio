@@ -5,36 +5,36 @@
     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="16dp">
 
         <!-- Title Header -->
-        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="Gboard RGB Studio" android:textColor="@color/accent_cyan" android:textSize="26sp" android:textStyle="bold" />
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="@string/app_name" android:textColor="@color/accent_cyan" android:textSize="26sp" android:textStyle="bold" />
 
-        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:text="7 Fluid &amp; Reactive Visual Effects Studio" android:textColor="#888888" android:textSize="13sp" />
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:text="@string/subtitle_effects_studio" android:textColor="#888888" android:textSize="13sp" />
 
         <!-- RGB Effects Studio Container -->
         <LinearLayout android:id="@+id/layoutRgbStudio" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
 
             <!-- Live Interactive Preview Canvas -->
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:text="Live Interactive Preview (Tap inside to test):" android:textColor="@color/accent_pink" android:textSize="14sp" android:textStyle="bold" />
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:text="@string/preview_title" android:textColor="@color/accent_pink" android:textSize="14sp" android:textStyle="bold" />
 
             <FrameLayout android:id="@+id/previewContainer" android:layout_width="match_parent" android:layout_height="180dp" android:layout_marginTop="8dp" android:background="@drawable/preview_box_bg">
 
-                <TextView android:id="@+id/tvPreviewHint" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="center" android:text="Tap anywhere in this box to trigger effect" android:textColor="#55FFFFFF" android:textSize="13sp" />
+                <TextView android:id="@+id/tvPreviewHint" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="center" android:text="@string/preview_hint" android:textColor="#55FFFFFF" android:textSize="13sp" />
             </FrameLayout>
 
             <!-- Test Keyboard Input Box -->
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:text="Test Typing on Gboard Here:" android:textColor="@color/white" android:textSize="14sp" android:textStyle="bold" />
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:text="@string/test_input_title" android:textColor="@color/white" android:textSize="14sp" android:textStyle="bold" />
 
-            <EditText android:id="@+id/etTestInput" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:background="@drawable/input_box_bg" android:hint="Tap here to open Gboard..." android:padding="12dp" android:textColor="@color/white" android:textColorHint="#555555" android:textSize="14sp" />
+            <EditText android:id="@+id/etTestInput" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:background="@drawable/input_box_bg" android:hint="@string/test_input_hint" android:padding="12dp" android:textColor="@color/white" android:textColorHint="#555555" android:textSize="14sp" />
 
             <!-- Dynamic Feature Switches -->
-            <com.google.android.material.materialswitch.MaterialSwitch android:id="@+id/switchAmbientRain" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="14dp" android:text="🌧️ Idle Ambient Raindrops (Every 2s on keyboard)" android:textColor="@color/white" android:textSize="13sp" android:textStyle="bold" />
+            <com.google.android.material.materialswitch.MaterialSwitch android:id="@+id/switchAmbientRain" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="14dp" android:text="@string/switch_ambient_rain" android:textColor="@color/white" android:textSize="13sp" android:textStyle="bold" />
 
-            <com.google.android.material.materialswitch.MaterialSwitch android:id="@+id/switchTurboDynamics" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="🔥 Turbo Typing Speed (Extra glow &amp; sparks when typing fast)" android:textColor="@color/white" android:textSize="13sp" android:textStyle="bold" />
+            <com.google.android.material.materialswitch.MaterialSwitch android:id="@+id/switchTurboDynamics" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="@string/switch_turbo_dynamics" android:textColor="@color/white" android:textSize="13sp" android:textStyle="bold" />
 
-            <com.google.android.material.materialswitch.MaterialSwitch android:id="@+id/switchGlideTrail" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="✨ Swipe / Glide Neon Laser Trail" android:textColor="@color/white" android:textSize="13sp" android:textStyle="bold" />
+            <com.google.android.material.materialswitch.MaterialSwitch android:id="@+id/switchGlideTrail" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="@string/switch_glide_trail" android:textColor="@color/white" android:textSize="13sp" android:textStyle="bold" />
 
-            <com.google.android.material.materialswitch.MaterialSwitch android:id="@+id/switchHaptic" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="📳 Tactile Haptic Micro-Tick (Linear physics feedback)" android:textColor="@color/white" android:textSize="13sp" android:textStyle="bold" />
+            <com.google.android.material.materialswitch.MaterialSwitch android:id="@+id/switchHaptic" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="@string/switch_haptic" android:textColor="@color/white" android:textSize="13sp" android:textStyle="bold" />
 
-            <com.google.android.material.materialswitch.MaterialSwitch android:id="@+id/switchUnderglow" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="💡 Perimeter Underglow (Mechanical edge ambient &amp; pulse glow)" android:textColor="@color/white" android:textSize="13sp" android:textStyle="bold" />
+            <com.google.android.material.materialswitch.MaterialSwitch android:id="@+id/switchUnderglow" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="@string/switch_underglow" android:textColor="@color/white" android:textSize="13sp" android:textStyle="bold" />
 
             <!-- Custom Dual-Tone Palette Card -->
             <LinearLayout
@@ -49,7 +49,7 @@
                     android:id="@+id/switchCustomColors"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="🎨 Custom Dual-Tone Palette (Override theme colors)"
+                    android:text="@string/switch_custom_colors"
                     android:textColor="@color/white"
                     android:textSize="13sp"
                     android:textStyle="bold" />
@@ -72,7 +72,7 @@
                         android:id="@+id/tvSwatchesLabel"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Curated Color Themes:"
+                        android:text="@string/curated_color_themes"
                         android:textColor="@color/accent_cyan"
                         android:textSize="13sp"
                         android:textStyle="bold" />
@@ -84,15 +84,15 @@
                         android:layout_marginTop="8dp"
                         app:singleSelection="true">
 
-                        <com.google.android.material.chip.Chip android:id="@+id/chipSwatchNothing" style="@style/Widget.Material3.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🔴 Nothing OS" android:textColor="@color/white" app:chipBackgroundColor="@color/card_dark" />
+                        <com.google.android.material.chip.Chip android:id="@+id/chipSwatchNothing" style="@style/Widget.Material3.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/swatch_nothing" android:textColor="@color/white" app:chipBackgroundColor="@color/card_dark" />
 
-                        <com.google.android.material.chip.Chip android:id="@+id/chipSwatchCyberpunk" style="@style/Widget.Material3.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🟡 Cyberpunk" android:textColor="@color/white" app:chipBackgroundColor="@color/card_dark" />
+                        <com.google.android.material.chip.Chip android:id="@+id/chipSwatchCyberpunk" style="@style/Widget.Material3.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/swatch_cyberpunk" android:textColor="@color/white" app:chipBackgroundColor="@color/card_dark" />
 
-                        <com.google.android.material.chip.Chip android:id="@+id/chipSwatchDracula" style="@style/Widget.Material3.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="💜 Dracula" android:textColor="@color/white" app:chipBackgroundColor="@color/card_dark" />
+                        <com.google.android.material.chip.Chip android:id="@+id/chipSwatchDracula" style="@style/Widget.Material3.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/swatch_dracula" android:textColor="@color/white" app:chipBackgroundColor="@color/card_dark" />
 
-                        <com.google.android.material.chip.Chip android:id="@+id/chipSwatchSunset" style="@style/Widget.Material3.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🌅 Sunset" android:textColor="@color/white" app:chipBackgroundColor="@color/card_dark" />
+                        <com.google.android.material.chip.Chip android:id="@+id/chipSwatchSunset" style="@style/Widget.Material3.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/swatch_sunset" android:textColor="@color/white" app:chipBackgroundColor="@color/card_dark" />
 
-                        <com.google.android.material.chip.Chip android:id="@+id/chipSwatchIce" style="@style/Widget.Material3.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="❄️ Glacier Ice" android:textColor="@color/white" app:chipBackgroundColor="@color/card_dark" />
+                        <com.google.android.material.chip.Chip android:id="@+id/chipSwatchIce" style="@style/Widget.Material3.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/swatch_ice" android:textColor="@color/white" app:chipBackgroundColor="@color/card_dark" />
                     </com.google.android.material.chip.ChipGroup>
                 </LinearLayout>
             </LinearLayout>
@@ -110,7 +110,7 @@
                     android:id="@+id/switchVisualEffect"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="✨ Visual Effect Presets (Canvas ripple, sparks &amp; ambient splash)"
+                    android:text="@string/switch_visual_effect"
                     android:textColor="@color/white"
                     android:textSize="13sp"
                     android:textStyle="bold" />
@@ -133,7 +133,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Select Visual Effect Preset:"
+                        android:text="@string/select_effect_preset"
                         android:textColor="@color/accent_cyan"
                         android:textSize="13sp"
                         android:textStyle="bold" />
@@ -146,28 +146,28 @@
                         app:selectionRequired="true"
                         app:singleSelection="true">
 
-                        <com.google.android.material.chip.Chip android:id="@+id/chipWater" style="@style/Widget.Material3.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="💧 Fluid Water" android:textColor="@color/white" app:chipBackgroundColor="@color/card_dark" />
+                        <com.google.android.material.chip.Chip android:id="@+id/chipWater" style="@style/Widget.Material3.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/effect_water" android:textColor="@color/white" app:chipBackgroundColor="@color/card_dark" />
 
-                        <com.google.android.material.chip.Chip android:id="@+id/chipLightning" style="@style/Widget.Material3.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="⚡ Neon Lightning" android:textColor="@color/white" app:chipBackgroundColor="@color/card_dark" />
+                        <com.google.android.material.chip.Chip android:id="@+id/chipLightning" style="@style/Widget.Material3.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/effect_lightning" android:textColor="@color/white" app:chipBackgroundColor="@color/card_dark" />
 
-                        <com.google.android.material.chip.Chip android:id="@+id/chipSupernova" style="@style/Widget.Material3.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🌌 Cosmic Supernova" android:textColor="@color/white" app:chipBackgroundColor="@color/card_dark" />
+                        <com.google.android.material.chip.Chip android:id="@+id/chipSupernova" style="@style/Widget.Material3.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/effect_supernova" android:textColor="@color/white" app:chipBackgroundColor="@color/card_dark" />
 
-                        <com.google.android.material.chip.Chip android:id="@+id/chipMagma" style="@style/Widget.Material3.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🔥 Molten Magma" android:textColor="@color/white" app:chipBackgroundColor="@color/card_dark" />
+                        <com.google.android.material.chip.Chip android:id="@+id/chipMagma" style="@style/Widget.Material3.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/effect_magma" android:textColor="@color/white" app:chipBackgroundColor="@color/card_dark" />
 
-                        <com.google.android.material.chip.Chip android:id="@+id/chipSonic" style="@style/Widget.Material3.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🔊 Sonic Wave" android:textColor="@color/white" app:chipBackgroundColor="@color/card_dark" />
+                        <com.google.android.material.chip.Chip android:id="@+id/chipSonic" style="@style/Widget.Material3.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/effect_sonic" android:textColor="@color/white" app:chipBackgroundColor="@color/card_dark" />
 
-                        <com.google.android.material.chip.Chip android:id="@+id/chipBlackHole" style="@style/Widget.Material3.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🌀 Black Hole" android:textColor="@color/white" app:chipBackgroundColor="@color/card_dark" />
+                        <com.google.android.material.chip.Chip android:id="@+id/chipBlackHole" style="@style/Widget.Material3.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/effect_black_hole" android:textColor="@color/white" app:chipBackgroundColor="@color/card_dark" />
 
-                        <com.google.android.material.chip.Chip android:id="@+id/chipAmbientRain" style="@style/Widget.Material3.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🌧️ Ambient Rain" android:textColor="@color/white" app:chipBackgroundColor="@color/card_dark" />
+                        <com.google.android.material.chip.Chip android:id="@+id/chipAmbientRain" style="@style/Widget.Material3.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/effect_ambient_rain" android:textColor="@color/white" app:chipBackgroundColor="@color/card_dark" />
 
-                        <com.google.android.material.chip.Chip android:id="@+id/chipChroma" style="@style/Widget.Material3.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🌈 Razer Chroma" android:textColor="@color/white" app:chipBackgroundColor="@color/card_dark" />
+                        <com.google.android.material.chip.Chip android:id="@+id/chipChroma" style="@style/Widget.Material3.Chip.Filter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/effect_chroma" android:textColor="@color/white" app:chipBackgroundColor="@color/card_dark" />
                     </com.google.android.material.chip.ChipGroup>
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
-                        android:text="🌊 Circular Wave Tuning (Visual Effects)"
+                        android:text="@string/tuning_circular_wave"
                         android:textColor="@color/accent_cyan"
                         android:textSize="13sp"
                         android:textStyle="bold" />
@@ -177,7 +177,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
-                        android:text="Wave Speed: 1.0x (Normal)"
+                        android:text="@string/wave_speed_default"
                         android:textColor="@color/white"
                         android:textSize="13sp" />
 
@@ -196,7 +196,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="6dp"
-                        android:text="Wave Size / Reach: 1.0x (Full)"
+                        android:text="@string/wave_size_default"
                         android:textColor="@color/white"
                         android:textSize="13sp" />
 
@@ -225,7 +225,7 @@
                     android:id="@+id/switchKeyShapeFlow"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="⌨️ Mechanical Key Matrix (Fluid travels through keycap shapes)"
+                    android:text="@string/switch_key_shape_flow"
                     android:textColor="@color/white"
                     android:textSize="13sp"
                     android:textStyle="bold" />
@@ -243,7 +243,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginStart="8dp"
                         android:layout_marginTop="4dp"
-                        android:text="🔲 Border Rim Only (Glow key outlines only, keep letters clear)"
+                        android:text="@string/switch_key_border_only"
                         android:textColor="#CCCCCC"
                         android:textSize="12sp" />
 
@@ -257,7 +257,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="⌨️ Keycap Matrix Flow Tuning (Key Shape Glow)"
+                        android:text="@string/tuning_key_matrix_flow"
                         android:textColor="@color/accent_cyan"
                         android:textSize="13sp"
                         android:textStyle="bold" />
@@ -267,7 +267,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
-                        android:text="Key Glow Speed: 1.0x (Normal)"
+                        android:text="@string/key_glow_speed_default"
                         android:textColor="@color/white"
                         android:textSize="13sp" />
 
@@ -286,7 +286,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="6dp"
-                        android:text="Key Glow Spread: 1.0x (Full Keyboard)"
+                        android:text="@string/key_glow_spread_default"
                         android:textColor="@color/white"
                         android:textSize="13sp" />
 
@@ -303,7 +303,7 @@
             </LinearLayout>
 
             <!-- Info Tip -->
-            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:layout_marginBottom="24dp" android:background="#151515" android:padding="12dp" android:text="💡 Tip: Settings sync to Gboard in REAL TIME! Tapping any preset or switch updates your keyboard instantly without restarting Gboard." android:textColor="#AAAAAA" android:textSize="12sp" />
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:layout_marginBottom="24dp" android:background="#151515" android:padding="12dp" android:text="@string/info_tip" android:textColor="#AAAAAA" android:textSize="12sp" />
 
         </LinearLayout>
         <!-- End of layoutRgbStudio -->

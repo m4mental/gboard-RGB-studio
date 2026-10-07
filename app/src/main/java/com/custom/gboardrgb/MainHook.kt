@@ -1,5 +1,6 @@
 package com.custom.gboardrgb
 
+import android.annotation.SuppressLint
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -46,6 +47,7 @@ class MainHook : IXposedHookLoadPackage {
         // Long-Press Continuous Wave System
         private var holdHandler: Handler? = null
         private var isHoldingKey = false
+        private var holdPointerId = -1
         private var holdOverlayX = 0f
         private var holdOverlayY = 0f
         private var holdRawStartX = 0f
@@ -72,6 +74,7 @@ class MainHook : IXposedHookLoadPackage {
             }
         }
 
+        @SuppressLint("MissingPermission")
         private fun triggerHaptic(context: Context) {
             if (!isHapticEnabled) return
             try {
@@ -101,8 +104,8 @@ class MainHook : IXposedHookLoadPackage {
 
         XposedBridge.log("[$TAG] Initializing Advanced Gboard RGB Suite...")
 
+        // Hook 1: setInputView
         try {
-            // Hook 1: setInputView
             XposedHelpers.findAndHookMethod(
                 "android.inputmethodservice.InputMethodService",
                 lpparam.classLoader,
@@ -121,8 +124,13 @@ class MainHook : IXposedHookLoadPackage {
                     }
                 }
             )
+            XposedBridge.log("[$TAG] Hook installed: setInputView")
+        } catch (t: Throwable) {
+            XposedBridge.log("[$TAG] Failed to hook setInputView: ${t.message}")
+        }
 
-            // Hook 2: onWindowShown
+        // Hook 2: onWindowShown
+        try {
             XposedHelpers.findAndHookMethod(
                 "android.inputmethodservice.InputMethodService",
                 lpparam.classLoader,
@@ -141,8 +149,13 @@ class MainHook : IXposedHookLoadPackage {
                     }
                 }
             )
+            XposedBridge.log("[$TAG] Hook installed: onWindowShown")
+        } catch (t: Throwable) {
+            XposedBridge.log("[$TAG] Failed to hook onWindowShown: ${t.message}")
+        }
 
-            // Hook 3: onStartInputView
+        // Hook 3: onStartInputView
+        try {
             XposedHelpers.findAndHookMethod(
                 "android.inputmethodservice.InputMethodService",
                 lpparam.classLoader,
@@ -158,8 +171,13 @@ class MainHook : IXposedHookLoadPackage {
                     }
                 }
             )
+            XposedBridge.log("[$TAG] Hook installed: onStartInputView")
+        } catch (t: Throwable) {
+            XposedBridge.log("[$TAG] Failed to hook onStartInputView: ${t.message}")
+        }
 
-            // Hook 4: ViewGroup.dispatchTouchEvent
+        // Hook 4: ViewGroup.dispatchTouchEvent
+        try {
             XposedHelpers.findAndHookMethod(
                 ViewGroup::class.java,
                 "dispatchTouchEvent",
@@ -217,7 +235,12 @@ class MainHook : IXposedHookLoadPackage {
                         }
 
                         when (action) {
-                            MotionEvent.ACTION_DOWN, MotionEvent.ACTION_POINTER_DOWN -> {
+                            MotionEvent.ACTION_DOWN -> {
+                                holdPointerId = event.getPointerId(0)
+                                handleTouchDown(rawX, rawY, overlay, view.context)
+                            }
+                            MotionEvent.ACTION_POINTER_DOWN -> {
+                                holdPointerId = event.getPointerId(event.actionIndex)
                                 handleTouchDown(rawX, rawY, overlay, view.context)
                             }
                             MotionEvent.ACTION_MOVE -> {
@@ -233,7 +256,16 @@ class MainHook : IXposedHookLoadPackage {
                                     overlay.addGlidePoint(rawX - overlayLoc[0], rawY - overlayLoc[1])
                                 }
                             }
-                            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL, MotionEvent.ACTION_POINTER_UP -> {
+                            MotionEvent.ACTION_POINTER_UP -> {
+                                val releasedPointerId = event.getPointerId(event.actionIndex)
+                                if (releasedPointerId == holdPointerId) {
+                                    stopHolding()
+                                }
+                                if (isGlideTrailEnabled) {
+                                    overlay.finishGlide()
+                                }
+                            }
+                            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                                 stopHolding()
                                 if (isGlideTrailEnabled) {
                                     overlay.finishGlide()
@@ -243,10 +275,9 @@ class MainHook : IXposedHookLoadPackage {
                     }
                 }
             )
-
-            XposedBridge.log("[$TAG] All advanced hooks active!")
+            XposedBridge.log("[$TAG] Hook installed: dispatchTouchEvent")
         } catch (t: Throwable) {
-            XposedBridge.log("[$TAG] Hook initialization failed: ${t.message}")
+            XposedBridge.log("[$TAG] Failed to hook dispatchTouchEvent: ${t.message}")
         }
     }
 
@@ -297,15 +328,17 @@ class MainHook : IXposedHookLoadPackage {
                 holdHandler = Handler(looper)
             }
         }
-        holdHandler?.removeCallbacksAndMessages(null)
+        holdHandler?.removeCallbacks(repeatWaveRunnable)
         holdHandler?.postDelayed(repeatWaveRunnable, 280)
     }
 
     private fun stopHolding() {
         isHoldingKey = false
-        holdHandler?.removeCallbacksAndMessages(null)
+        holdPointerId = -1
+        holdHandler?.removeCallbacks(repeatWaveRunnable)
     }
 
+    @SuppressLint("UnspecifiedRegisterReceiverFlag")
     private fun registerSettingsReceiver(context: Context) {
         try {
             val filter = IntentFilter(ConfigManager.ACTION_UPDATE_SETTINGS)
@@ -332,43 +365,62 @@ class MainHook : IXposedHookLoadPackage {
                     val keyFlow = intent.getBooleanExtra(ConfigManager.EXTRA_KEY_SHAPE_FLOW, true)
                     val borderOnly = intent.getBooleanExtra(ConfigManager.EXTRA_KEY_BORDER_ONLY, true)
 
-                    isHapticEnabled = haptic
-                    isTurboDynamicsEnabled = turbo
-                    isGlideTrailEnabled = glide
+                    val rawSettings = ConfigManager.Settings(
+                        EffectType.fromId(effectId), speed, size, waveSpeed, waveSize, keyFlowSpeed, keyFlowSize,
+                        isAmbient, useCustom, colPrimStr, colSecStr, turbo, glide, haptic, underglow, visualEffect, keyFlow, borderOnly
+                    )
+                    val sanitized = ConfigManager.sanitize(rawSettings)
+
+                    // Apply static flags only after confirming payload validity
+                    isHapticEnabled = sanitized.isHapticEnabled
+                    isTurboDynamicsEnabled = sanitized.isTurboDynamicsEnabled
+                    isGlideTrailEnabled = sanitized.isGlideTrailEnabled
 
                     val overlay = currentOverlayRef?.get() ?: return
-                    overlay.currentEffect = EffectType.fromId(effectId)
-                    overlay.waveSpeedMultiplier = waveSpeed
-                    overlay.waveSizeMultiplier = waveSize
-                    overlay.keyFlowSpeedMultiplier = keyFlowSpeed
-                    overlay.keyFlowSizeMultiplier = keyFlowSize
-                    overlay.isAmbientRainEnabled = isAmbient
-                    overlay.useCustomColors = useCustom
-                    overlay.isTurboDynamicsEnabled = turbo
-                    overlay.isGlideTrailEnabled = glide
-                    overlay.isUnderglowEnabled = underglow
-                    overlay.isVisualEffectEnabled = visualEffect
-                    overlay.isKeyShapeFlowEnabled = keyFlow
-                    overlay.isKeyBorderOnlyEnabled = borderOnly
+                    overlay.currentEffect = sanitized.effectType
+                    overlay.waveSpeedMultiplier = sanitized.waveSpeedMultiplier
+                    overlay.waveSizeMultiplier = sanitized.waveSizeMultiplier
+                    overlay.keyFlowSpeedMultiplier = sanitized.keyFlowSpeedMultiplier
+                    overlay.keyFlowSizeMultiplier = sanitized.keyFlowSizeMultiplier
+                    overlay.isAmbientRainEnabled = sanitized.isAmbientRainEnabled
+                    overlay.useCustomColors = sanitized.useCustomColors
+                    overlay.isTurboDynamicsEnabled = sanitized.isTurboDynamicsEnabled
+                    overlay.isGlideTrailEnabled = sanitized.isGlideTrailEnabled
+                    overlay.isUnderglowEnabled = sanitized.isUnderglowEnabled
+                    overlay.isVisualEffectEnabled = sanitized.isVisualEffectEnabled
+                    overlay.isKeyShapeFlowEnabled = sanitized.isKeyShapeFlowEnabled
+                    overlay.isKeyBorderOnlyEnabled = sanitized.isKeyBorderOnlyEnabled
 
                     try {
-                        overlay.customColorPrimary = Color.parseColor(colPrimStr)
-                        overlay.customColorSecondary = Color.parseColor(colSecStr)
+                        overlay.customColorPrimary = Color.parseColor(sanitized.colorPrimary)
+                        overlay.customColorSecondary = Color.parseColor(sanitized.colorSecondary)
                     } catch (e: Exception) {
                         // Keep current
                     }
 
-                    XposedBridge.log("[$TAG] Real-time setting switch applied! waveSpeed=$waveSpeed, waveSize=$waveSize, keyFlowSpeed=$keyFlowSpeed, keyFlowSize=$keyFlowSize, customColors=$useCustom, turbo=$turbo, glide=$glide, haptic=$haptic, underglow=$underglow, visualEffect=$visualEffect, keyFlow=$keyFlow, borderOnly=$borderOnly")
+                    ConfigManager.saveLocalGboardConfig(ctx ?: context, sanitized)
+                    XposedBridge.log("[$TAG] Real-time setting switch applied! effect=${sanitized.effectType.name}")
                 }
             }
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                context.registerReceiver(receiver, filter, Context.RECEIVER_EXPORTED)
+                context.registerReceiver(
+                    receiver,
+                    filter,
+                    ConfigManager.PERMISSION_SETTINGS_BROADCAST,
+                    null,
+                    Context.RECEIVER_EXPORTED
+                )
             } else {
-                context.registerReceiver(receiver, filter)
+                context.registerReceiver(
+                    receiver,
+                    filter,
+                    ConfigManager.PERMISSION_SETTINGS_BROADCAST,
+                    null
+                )
             }
             isReceiverRegistered = true
-            XposedBridge.log("[$TAG] Real-time settings receiver registered in Gboard!")
+            XposedBridge.log("[$TAG] Real-time settings receiver registered in Gboard with broadcastPermission!")
         } catch (e: Exception) {
             XposedBridge.log("[$TAG] Failed to register receiver: ${e.message}")
         }
@@ -443,30 +495,33 @@ class MainHook : IXposedHookLoadPackage {
                 // Asynchronously query SettingsProvider in background without blocking Gboard UI thread
                 ConfigManager.syncFromProviderAsync(root.context) { freshSettings ->
                     root.post {
+                        val sanitized = ConfigManager.sanitize(freshSettings)
+                        isHapticEnabled = sanitized.isHapticEnabled
+                        isTurboDynamicsEnabled = sanitized.isTurboDynamicsEnabled
+                        isGlideTrailEnabled = sanitized.isGlideTrailEnabled
+
                         val activeOverlay = currentOverlayRef?.get() ?: return@post
-                        activeOverlay.currentEffect = freshSettings.effectType
-                        activeOverlay.waveSpeedMultiplier = freshSettings.waveSpeedMultiplier
-                        activeOverlay.waveSizeMultiplier = freshSettings.waveSizeMultiplier
-                        activeOverlay.keyFlowSpeedMultiplier = freshSettings.keyFlowSpeedMultiplier
-                        activeOverlay.keyFlowSizeMultiplier = freshSettings.keyFlowSizeMultiplier
-                        activeOverlay.isAmbientRainEnabled = freshSettings.isAmbientRainEnabled
-                        activeOverlay.useCustomColors = freshSettings.useCustomColors
-                        activeOverlay.isTurboDynamicsEnabled = freshSettings.isTurboDynamicsEnabled
-                        activeOverlay.isGlideTrailEnabled = freshSettings.isGlideTrailEnabled
-                        activeOverlay.isUnderglowEnabled = freshSettings.isUnderglowEnabled
-                        activeOverlay.isVisualEffectEnabled = freshSettings.isVisualEffectEnabled
-                        activeOverlay.isKeyShapeFlowEnabled = freshSettings.isKeyShapeFlowEnabled
-                        activeOverlay.isKeyBorderOnlyEnabled = freshSettings.isKeyBorderOnlyEnabled
+                        activeOverlay.currentEffect = sanitized.effectType
+                        activeOverlay.waveSpeedMultiplier = sanitized.waveSpeedMultiplier
+                        activeOverlay.waveSizeMultiplier = sanitized.waveSizeMultiplier
+                        activeOverlay.keyFlowSpeedMultiplier = sanitized.keyFlowSpeedMultiplier
+                        activeOverlay.keyFlowSizeMultiplier = sanitized.keyFlowSizeMultiplier
+                        activeOverlay.isAmbientRainEnabled = sanitized.isAmbientRainEnabled
+                        activeOverlay.useCustomColors = sanitized.useCustomColors
+                        activeOverlay.isTurboDynamicsEnabled = sanitized.isTurboDynamicsEnabled
+                        activeOverlay.isGlideTrailEnabled = sanitized.isGlideTrailEnabled
+                        activeOverlay.isUnderglowEnabled = sanitized.isUnderglowEnabled
+                        activeOverlay.isVisualEffectEnabled = sanitized.isVisualEffectEnabled
+                        activeOverlay.isKeyShapeFlowEnabled = sanitized.isKeyShapeFlowEnabled
+                        activeOverlay.isKeyBorderOnlyEnabled = sanitized.isKeyBorderOnlyEnabled
 
                         try {
-                            activeOverlay.customColorPrimary = Color.parseColor(freshSettings.colorPrimary)
-                            activeOverlay.customColorSecondary = Color.parseColor(freshSettings.colorSecondary)
+                            activeOverlay.customColorPrimary = Color.parseColor(sanitized.colorPrimary)
+                            activeOverlay.customColorSecondary = Color.parseColor(sanitized.colorSecondary)
                         } catch (e: Exception) {}
 
-                        isHapticEnabled = freshSettings.isHapticEnabled
-                        isTurboDynamicsEnabled = freshSettings.isTurboDynamicsEnabled
-                        isGlideTrailEnabled = freshSettings.isGlideTrailEnabled
                         activeOverlay.invalidate()
+                        ConfigManager.saveLocalGboardConfig(root.context, sanitized)
                     }
                 }
             } catch (e: Exception) {
@@ -476,6 +531,14 @@ class MainHook : IXposedHookLoadPackage {
     }
 
     private fun findKeyboardHolder(view: View): View? {
+        val found = searchKeyboardHolder(view)
+        if (found == null) {
+            XposedBridge.log("[$TAG] Diagnostic: Neither KeyboardHolder nor SoftKeyboardView found in view tree under ${view.javaClass.simpleName}")
+        }
+        return found
+    }
+
+    private fun searchKeyboardHolder(view: View): View? {
         if (view !is ViewGroup) return null
         if (!view.isShown || view.visibility != View.VISIBLE || view.width <= 0 || view.height <= 0) {
             return null
@@ -486,7 +549,7 @@ class MainHook : IXposedHookLoadPackage {
         }
         for (i in 0 until view.childCount) {
             val child = view.getChildAt(i)
-            val found = findKeyboardHolder(child)
+            val found = searchKeyboardHolder(child)
             if (found != null) return found
         }
         if (name.contains("SoftKeyboardView")) {

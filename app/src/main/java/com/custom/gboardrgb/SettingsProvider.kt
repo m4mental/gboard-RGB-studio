@@ -84,8 +84,20 @@ class SettingsProvider : ContentProvider() {
     override fun onCreate(): Boolean = true
 
     override fun call(method: String, arg: String?, extras: Bundle?): Bundle? {
+        val callingUid = android.os.Binder.getCallingUid()
+        val ctx = context ?: return null
+        val myUid = android.os.Process.myUid()
+
+        val isAuthorized = (callingUid == myUid) || run {
+            val packages = ctx.packageManager.getPackagesForUid(callingUid)
+            packages?.contains("com.google.android.inputmethod.latin") == true
+        }
+
+        if (!isAuthorized) {
+            throw SecurityException("Unauthorized caller UID: $callingUid")
+        }
+
         if (method == METHOD_GET_SETTINGS) {
-            val ctx = context ?: return null
             val settings = ConfigManager.loadSettings(ctx)
             return settingsToBundle(settings)
         }

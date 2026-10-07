@@ -2,12 +2,18 @@ package com.custom.gboardrgb
 
 import android.content.Context
 import android.content.Intent
-import android.content.SharedPreferences
+import android.graphics.Color
 import org.json.JSONObject
 import java.io.File
+import java.util.concurrent.Executors
+import java.util.concurrent.ScheduledExecutorService
+import java.util.concurrent.ScheduledFuture
+import java.util.concurrent.TimeUnit
 
 object ConfigManager {
     const val ACTION_UPDATE_SETTINGS = "com.custom.gboardrgb.UPDATE_SETTINGS"
+    const val PERMISSION_SETTINGS_BROADCAST = "com.custom.gboardrgb.permission.SETTINGS_BROADCAST"
+
     const val EXTRA_EFFECT_ID = "extra_effect_id"
     const val EXTRA_SPEED = "extra_speed"
     const val EXTRA_SIZE = "extra_size"
@@ -54,6 +60,12 @@ object ConfigManager {
         "/data/local/tmp/gboard_rgb_config.json"
     )
 
+    private val rootSyncExecutor: ScheduledExecutorService = Executors.newSingleThreadScheduledExecutor()
+    private var pendingSyncTask: ScheduledFuture<*>? = null
+    private val syncLock = Any()
+    @Volatile private var latestJsonSnapshot: String? = null
+    @Volatile private var appContextRef: Context? = null
+
     data class Settings(
         var effectType: EffectType = EffectType.WATER_DROP,
         var speedMultiplier: Float = 1.0f,
@@ -75,102 +87,224 @@ object ConfigManager {
         var isKeyBorderOnlyEnabled: Boolean = true
     )
 
+    fun sanitize(settings: Settings, previous: Settings? = null): Settings {
+        fun clampValue(value: Float, min: Float, max: Float, fallback: Float): Float {
+            if (value.isNaN() || value.isInfinite()) {
+                return fallback
+            }
+            return (kotlin.math.round(value * 10f) / 10f).coerceIn(min, max)
+        }
+
+        fun isValidColor(colorStr: String?): Boolean {
+            if (colorStr.isNullOrBlank()) return false
+            return try {
+                Color.parseColor(colorStr)
+                true
+            } catch (_: Exception) {
+                false
+            }
+        }
+
+        val safeEffect = EffectType.fromId(settings.effectType.id)
+        val prev = previous ?: Settings()
+
+        val speed = clampValue(settings.speedMultiplier, 0.3f, 2.0f, prev.speedMultiplier)
+        val size = clampValue(settings.sizeMultiplier, 0.2f, 1.5f, prev.sizeMultiplier)
+        val waveSpeed = clampValue(settings.waveSpeedMultiplier, 0.3f, 2.0f, prev.waveSpeedMultiplier)
+        val waveSize = clampValue(settings.waveSizeMultiplier, 0.2f, 1.5f, prev.waveSizeMultiplier)
+        val keyFlowSpeed = clampValue(settings.keyFlowSpeedMultiplier, 0.3f, 2.0f, prev.keyFlowSpeedMultiplier)
+        val keyFlowSize = clampValue(settings.keyFlowSizeMultiplier, 0.2f, 1.5f, prev.keyFlowSizeMultiplier)
+
+        val primary = if (isValidColor(settings.colorPrimary)) settings.colorPrimary else prev.colorPrimary
+        val secondary = if (isValidColor(settings.colorSecondary)) settings.colorSecondary else prev.colorSecondary
+
+        return settings.copy(
+            effectType = safeEffect,
+            speedMultiplier = speed,
+            sizeMultiplier = size,
+            waveSpeedMultiplier = waveSpeed,
+            waveSizeMultiplier = waveSize,
+            keyFlowSpeedMultiplier = keyFlowSpeed,
+            keyFlowSizeMultiplier = keyFlowSize,
+            colorPrimary = primary,
+            colorSecondary = secondary
+        )
+    }
+
     fun saveSettings(context: Context, settings: Settings) {
+        val cleanSettings = sanitize(settings)
+
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         prefs.edit()
-            .putInt(KEY_EFFECT_ID, settings.effectType.id)
-            .putFloat(KEY_SPEED, settings.speedMultiplier)
-            .putFloat(KEY_SIZE, settings.sizeMultiplier)
-            .putFloat(KEY_WAVE_SPEED, settings.waveSpeedMultiplier)
-            .putFloat(KEY_WAVE_SIZE, settings.waveSizeMultiplier)
-            .putFloat(KEY_KEY_FLOW_SPEED, settings.keyFlowSpeedMultiplier)
-            .putFloat(KEY_KEY_FLOW_SIZE, settings.keyFlowSizeMultiplier)
-            .putBoolean(KEY_AMBIENT_RAIN, settings.isAmbientRainEnabled)
-            .putBoolean(KEY_USE_CUSTOM_COLORS, settings.useCustomColors)
-            .putString(KEY_COLOR_PRIMARY, settings.colorPrimary)
-            .putString(KEY_COLOR_SECONDARY, settings.colorSecondary)
-            .putBoolean(KEY_TURBO_DYNAMICS, settings.isTurboDynamicsEnabled)
-            .putBoolean(KEY_GLIDE_TRAIL, settings.isGlideTrailEnabled)
-            .putBoolean(KEY_HAPTIC, settings.isHapticEnabled)
-            .putBoolean(KEY_UNDERGLOW, settings.isUnderglowEnabled)
-            .putBoolean(KEY_VISUAL_EFFECT, settings.isVisualEffectEnabled)
-            .putBoolean(KEY_KEY_SHAPE_FLOW, settings.isKeyShapeFlowEnabled)
-            .putBoolean(KEY_KEY_BORDER_ONLY, settings.isKeyBorderOnlyEnabled)
+            .putInt(KEY_EFFECT_ID, cleanSettings.effectType.id)
+            .putFloat(KEY_SPEED, cleanSettings.speedMultiplier)
+            .putFloat(KEY_SIZE, cleanSettings.sizeMultiplier)
+            .putFloat(KEY_WAVE_SPEED, cleanSettings.waveSpeedMultiplier)
+            .putFloat(KEY_WAVE_SIZE, cleanSettings.waveSizeMultiplier)
+            .putFloat(KEY_KEY_FLOW_SPEED, cleanSettings.keyFlowSpeedMultiplier)
+            .putFloat(KEY_KEY_FLOW_SIZE, cleanSettings.keyFlowSizeMultiplier)
+            .putBoolean(KEY_AMBIENT_RAIN, cleanSettings.isAmbientRainEnabled)
+            .putBoolean(KEY_USE_CUSTOM_COLORS, cleanSettings.useCustomColors)
+            .putString(KEY_COLOR_PRIMARY, cleanSettings.colorPrimary)
+            .putString(KEY_COLOR_SECONDARY, cleanSettings.colorSecondary)
+            .putBoolean(KEY_TURBO_DYNAMICS, cleanSettings.isTurboDynamicsEnabled)
+            .putBoolean(KEY_GLIDE_TRAIL, cleanSettings.isGlideTrailEnabled)
+            .putBoolean(KEY_HAPTIC, cleanSettings.isHapticEnabled)
+            .putBoolean(KEY_UNDERGLOW, cleanSettings.isUnderglowEnabled)
+            .putBoolean(KEY_VISUAL_EFFECT, cleanSettings.isVisualEffectEnabled)
+            .putBoolean(KEY_KEY_SHAPE_FLOW, cleanSettings.isKeyShapeFlowEnabled)
+            .putBoolean(KEY_KEY_BORDER_ONLY, cleanSettings.isKeyBorderOnlyEnabled)
             .apply()
 
-        val jsonString = JSONObject().apply {
-            put("effect_id", settings.effectType.id)
-            put("speed", settings.speedMultiplier.toDouble())
-            put("size", settings.sizeMultiplier.toDouble())
-            put("wave_speed", settings.waveSpeedMultiplier.toDouble())
-            put("wave_size", settings.waveSizeMultiplier.toDouble())
-            put("key_flow_speed", settings.keyFlowSpeedMultiplier.toDouble())
-            put("key_flow_size", settings.keyFlowSizeMultiplier.toDouble())
-            put("ambient_rain", settings.isAmbientRainEnabled)
-            put("use_custom_colors", settings.useCustomColors)
-            put("color_primary", settings.colorPrimary)
-            put("color_secondary", settings.colorSecondary)
-            put("turbo_dynamics", settings.isTurboDynamicsEnabled)
-            put("glide_trail", settings.isGlideTrailEnabled)
-            put("haptic", settings.isHapticEnabled)
-            put("underglow", settings.isUnderglowEnabled)
-            put("visual_effect", settings.isVisualEffectEnabled)
-            put("key_shape_flow", settings.isKeyShapeFlowEnabled)
-            put("key_border_only", settings.isKeyBorderOnlyEnabled)
-        }.toString()
+        val jsonString = toJson(cleanSettings)
 
-        // Sync to Gboard files via background root write if possible
-        Thread {
-            try {
-                val tempFile = File(context.cacheDir, "rgb_cfg.json")
-                tempFile.writeText(jsonString)
-                val gboardUid = try {
-                    context.packageManager.getApplicationInfo(GBOARD_PACKAGE, 0).uid
-                } catch (e: Exception) {
-                    10310
-                }
-                val syncScript = buildString {
-                    for (path in CONFIG_FILE_PATHS) {
-                        val dir = File(path).parent ?: continue
-                        appendLine("mkdir -p '$dir'")
-                        appendLine("cp '${tempFile.absolutePath}' '$path'")
-                        appendLine("chmod 644 '$path'")
-                        appendLine("chown $gboardUid:$gboardUid '$path' 2>/dev/null || true")
-                        appendLine("restorecon '$path' 2>/dev/null || true")
-                    }
-                }
-                val scriptFile = File.createTempFile("sync_cfg_", ".sh")
-                scriptFile.writeText("#!/system/bin/sh\n$syncScript\n")
-                Runtime.getRuntime().exec(arrayOf("su", "-c", "sh ${scriptFile.absolutePath}")).waitFor()
-                scriptFile.delete()
-                tempFile.delete()
-            } catch (e: Exception) {
-                // Non-root fallback
-            }
-        }.start()
+        appContextRef = context.applicationContext
+        synchronized(syncLock) {
+            latestJsonSnapshot = jsonString
+            pendingSyncTask?.cancel(false)
+            pendingSyncTask = rootSyncExecutor.schedule({
+                val jsonToWrite = latestJsonSnapshot ?: return@schedule
+                val ctx = appContextRef ?: return@schedule
+                writeRootConfig(ctx, jsonToWrite)
+            }, 300, TimeUnit.MILLISECONDS)
+        }
 
         val intent = Intent(ACTION_UPDATE_SETTINGS).apply {
-            putExtra(EXTRA_EFFECT_ID, settings.effectType.id)
-            putExtra(EXTRA_SPEED, settings.speedMultiplier)
-            putExtra(EXTRA_SIZE, settings.sizeMultiplier)
-            putExtra(EXTRA_WAVE_SPEED, settings.waveSpeedMultiplier)
-            putExtra(EXTRA_WAVE_SIZE, settings.waveSizeMultiplier)
-            putExtra(EXTRA_KEY_FLOW_SPEED, settings.keyFlowSpeedMultiplier)
-            putExtra(EXTRA_KEY_FLOW_SIZE, settings.keyFlowSizeMultiplier)
-            putExtra(EXTRA_AMBIENT_RAIN, settings.isAmbientRainEnabled)
-            putExtra(EXTRA_USE_CUSTOM_COLORS, settings.useCustomColors)
-            putExtra(EXTRA_COLOR_PRIMARY, settings.colorPrimary)
-            putExtra(EXTRA_COLOR_SECONDARY, settings.colorSecondary)
-            putExtra(EXTRA_TURBO_DYNAMICS, settings.isTurboDynamicsEnabled)
-            putExtra(EXTRA_GLIDE_TRAIL, settings.isGlideTrailEnabled)
-            putExtra(EXTRA_HAPTIC, settings.isHapticEnabled)
-            putExtra(EXTRA_UNDERGLOW, settings.isUnderglowEnabled)
-            putExtra(EXTRA_VISUAL_EFFECT, settings.isVisualEffectEnabled)
-            putExtra(EXTRA_KEY_SHAPE_FLOW, settings.isKeyShapeFlowEnabled)
-            putExtra(EXTRA_KEY_BORDER_ONLY, settings.isKeyBorderOnlyEnabled)
+            putExtra(EXTRA_EFFECT_ID, cleanSettings.effectType.id)
+            putExtra(EXTRA_SPEED, cleanSettings.speedMultiplier)
+            putExtra(EXTRA_SIZE, cleanSettings.sizeMultiplier)
+            putExtra(EXTRA_WAVE_SPEED, cleanSettings.waveSpeedMultiplier)
+            putExtra(EXTRA_WAVE_SIZE, cleanSettings.waveSizeMultiplier)
+            putExtra(EXTRA_KEY_FLOW_SPEED, cleanSettings.keyFlowSpeedMultiplier)
+            putExtra(EXTRA_KEY_FLOW_SIZE, cleanSettings.keyFlowSizeMultiplier)
+            putExtra(EXTRA_AMBIENT_RAIN, cleanSettings.isAmbientRainEnabled)
+            putExtra(EXTRA_USE_CUSTOM_COLORS, cleanSettings.useCustomColors)
+            putExtra(EXTRA_COLOR_PRIMARY, cleanSettings.colorPrimary)
+            putExtra(EXTRA_COLOR_SECONDARY, cleanSettings.colorSecondary)
+            putExtra(EXTRA_TURBO_DYNAMICS, cleanSettings.isTurboDynamicsEnabled)
+            putExtra(EXTRA_GLIDE_TRAIL, cleanSettings.isGlideTrailEnabled)
+            putExtra(EXTRA_HAPTIC, cleanSettings.isHapticEnabled)
+            putExtra(EXTRA_UNDERGLOW, cleanSettings.isUnderglowEnabled)
+            putExtra(EXTRA_VISUAL_EFFECT, cleanSettings.isVisualEffectEnabled)
+            putExtra(EXTRA_KEY_SHAPE_FLOW, cleanSettings.isKeyShapeFlowEnabled)
+            putExtra(EXTRA_KEY_BORDER_ONLY, cleanSettings.isKeyBorderOnlyEnabled)
             `package` = GBOARD_PACKAGE
         }
         context.sendBroadcast(intent)
+    }
+
+    fun toJson(settings: Settings): String {
+        val clean = sanitize(settings)
+        return JSONObject().apply {
+            put("effect_id", clean.effectType.id)
+            put("speed", clean.speedMultiplier.toDouble())
+            put("size", clean.sizeMultiplier.toDouble())
+            put("wave_speed", clean.waveSpeedMultiplier.toDouble())
+            put("wave_size", clean.waveSizeMultiplier.toDouble())
+            put("key_flow_speed", clean.keyFlowSpeedMultiplier.toDouble())
+            put("key_flow_size", clean.keyFlowSizeMultiplier.toDouble())
+            put("ambient_rain", clean.isAmbientRainEnabled)
+            put("use_custom_colors", clean.useCustomColors)
+            put("color_primary", clean.colorPrimary)
+            put("color_secondary", clean.colorSecondary)
+            put("turbo_dynamics", clean.isTurboDynamicsEnabled)
+            put("glide_trail", clean.isGlideTrailEnabled)
+            put("haptic", clean.isHapticEnabled)
+            put("underglow", clean.isUnderglowEnabled)
+            put("visual_effect", clean.isVisualEffectEnabled)
+            put("key_shape_flow", clean.isKeyShapeFlowEnabled)
+            put("key_border_only", clean.isKeyBorderOnlyEnabled)
+        }.toString()
+    }
+
+    fun fromJson(text: String): Settings? {
+        return try {
+            val json = JSONObject(text)
+            val id = json.optInt("effect_id", 0)
+            val legacySpeed = json.optDouble("speed", 1.0).toFloat()
+            val legacySize = json.optDouble("size", 1.0).toFloat()
+            val waveSpeed = json.optDouble("wave_speed", legacySpeed.toDouble()).toFloat()
+            val waveSize = json.optDouble("wave_size", legacySize.toDouble()).toFloat()
+            val keyFlowSpeed = json.optDouble("key_flow_speed", legacySpeed.toDouble()).toFloat()
+            val keyFlowSize = json.optDouble("key_flow_size", legacySize.toDouble()).toFloat()
+            val ambient = json.optBoolean("ambient_rain", false)
+            val useCustom = json.optBoolean("use_custom_colors", false)
+            val colPrim = json.optString("color_primary", "#00FFF5")
+            val colSec = json.optString("color_secondary", "#FF00AA")
+            val turbo = json.optBoolean("turbo_dynamics", true)
+            val glide = json.optBoolean("glide_trail", true)
+            val haptic = json.optBoolean("haptic", true)
+            val underglow = json.optBoolean("underglow", false)
+            val visualEffect = json.optBoolean("visual_effect", true)
+            val keyFlow = json.optBoolean("key_shape_flow", true)
+            val borderOnly = json.optBoolean("key_border_only", true)
+            val raw = Settings(
+                EffectType.fromId(id), waveSpeed, waveSize, waveSpeed, waveSize, keyFlowSpeed, keyFlowSize,
+                ambient, useCustom, colPrim, colSec, turbo, glide, haptic, underglow, visualEffect, keyFlow, borderOnly
+            )
+            sanitize(raw)
+        } catch (_: Throwable) {
+            null
+        }
+    }
+
+    fun saveLocalGboardConfig(context: Context, settings: Settings) {
+        try {
+            val jsonString = toJson(settings)
+            val targets = mutableListOf<File>()
+            try {
+                context.filesDir?.let { targets.add(File(it, "gboard_rgb_config.json")) }
+            } catch (_: Throwable) {}
+            try {
+                context.createDeviceProtectedStorageContext()?.filesDir?.let { targets.add(File(it, "gboard_rgb_config.json")) }
+            } catch (_: Throwable) {}
+            for (file in targets) {
+                try {
+                    file.parentFile?.mkdirs()
+                    file.writeText(jsonString)
+                } catch (_: Throwable) {}
+            }
+        } catch (_: Throwable) {}
+    }
+
+    private fun writeRootConfig(context: Context, jsonContent: String) {
+        var tempFile: File? = null
+        var scriptFile: File? = null
+        try {
+            tempFile = File.createTempFile("rgb_cfg_sync_", ".json", context.cacheDir)
+            tempFile.writeText(jsonContent)
+            tempFile.setReadable(true, false)
+            val gboardUid = try {
+                context.packageManager.getApplicationInfo(GBOARD_PACKAGE, 0).uid
+            } catch (e: Exception) {
+                10310
+            }
+            val syncScript = buildString {
+                for (path in CONFIG_FILE_PATHS) {
+                    val dir = File(path).parent ?: continue
+                    appendLine("mkdir -p '$dir'")
+                    appendLine("cp '${tempFile.absolutePath}' '$path'")
+                    appendLine("chmod 644 '$path'")
+                    appendLine("chown $gboardUid:$gboardUid '$path' 2>/dev/null || true")
+                    appendLine("restorecon '$path' 2>/dev/null || true")
+                }
+            }
+            scriptFile = File.createTempFile("sync_cfg_", ".sh", context.cacheDir)
+            scriptFile.writeText("#!/system/bin/sh\n$syncScript\n")
+            scriptFile.setReadable(true, false)
+            scriptFile.setExecutable(true, false)
+
+            val pb = ProcessBuilder("su", "-c", "sh ${scriptFile.absolutePath}")
+            pb.redirectErrorStream(true)
+            val process = pb.start()
+            process.inputStream.bufferedReader().use { it.readText() }
+            process.waitFor()
+        } catch (e: Exception) {
+            // Non-root fallback
+        } finally {
+            try { tempFile?.delete() } catch (_: Exception) {}
+            try { scriptFile?.delete() } catch (_: Exception) {}
+        }
     }
 
     fun loadSettings(context: Context? = null): Settings {
@@ -179,12 +313,12 @@ object ConfigManager {
             try {
                 val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                 val id = prefs.getInt(KEY_EFFECT_ID, EffectType.WATER_DROP.id)
-                val legacySpeed = (kotlin.math.round(prefs.getFloat(KEY_SPEED, 1.0f) * 10f) / 10f).coerceIn(0.3f, 2.0f)
-                val legacySize = (kotlin.math.round(prefs.getFloat(KEY_SIZE, 1.0f) * 10f) / 10f).coerceIn(0.2f, 1.5f)
-                val waveSpeed = (kotlin.math.round(prefs.getFloat(KEY_WAVE_SPEED, legacySpeed) * 10f) / 10f).coerceIn(0.3f, 2.0f)
-                val waveSize = (kotlin.math.round(prefs.getFloat(KEY_WAVE_SIZE, legacySize) * 10f) / 10f).coerceIn(0.2f, 1.5f)
-                val keyFlowSpeed = (kotlin.math.round(prefs.getFloat(KEY_KEY_FLOW_SPEED, legacySpeed) * 10f) / 10f).coerceIn(0.3f, 2.0f)
-                val keyFlowSize = (kotlin.math.round(prefs.getFloat(KEY_KEY_FLOW_SIZE, legacySize) * 10f) / 10f).coerceIn(0.2f, 1.5f)
+                val legacySpeed = prefs.getFloat(KEY_SPEED, 1.0f)
+                val legacySize = prefs.getFloat(KEY_SIZE, 1.0f)
+                val waveSpeed = prefs.getFloat(KEY_WAVE_SPEED, legacySpeed)
+                val waveSize = prefs.getFloat(KEY_WAVE_SIZE, legacySize)
+                val keyFlowSpeed = prefs.getFloat(KEY_KEY_FLOW_SPEED, legacySpeed)
+                val keyFlowSize = prefs.getFloat(KEY_KEY_FLOW_SIZE, legacySize)
                 val ambient = prefs.getBoolean(KEY_AMBIENT_RAIN, false)
                 val useCustom = prefs.getBoolean(KEY_USE_CUSTOM_COLORS, false)
                 val colPrim = prefs.getString(KEY_COLOR_PRIMARY, "#00FFF5") ?: "#00FFF5"
@@ -196,45 +330,47 @@ object ConfigManager {
                 val visualEffect = prefs.getBoolean(KEY_VISUAL_EFFECT, true)
                 val keyFlow = prefs.getBoolean(KEY_KEY_SHAPE_FLOW, true)
                 val borderOnly = prefs.getBoolean(KEY_KEY_BORDER_ONLY, true)
-                return Settings(
+                val raw = Settings(
                     EffectType.fromId(id), waveSpeed, waveSize, waveSpeed, waveSize, keyFlowSpeed, keyFlowSize,
                     ambient, useCustom, colPrim, colSec, turbo, glide, haptic, underglow, visualEffect, keyFlow, borderOnly
                 )
+                return sanitize(raw)
             } catch (e: Throwable) {
                 // Fallback to disk
             }
         }
 
-        // 2. In Gboard: Read local JSON config files directly (Fast, 0ms, Non-blocking, Zero IPC)
+        // 2. In Gboard: Check context's own filesDir and device-protected filesDir first (0ms, direct permission)
+        if (context != null) {
+            val directFiles = mutableListOf<File>()
+            try {
+                context.filesDir?.let { directFiles.add(File(it, "gboard_rgb_config.json")) }
+            } catch (_: Throwable) {}
+            try {
+                context.createDeviceProtectedStorageContext()?.filesDir?.let { directFiles.add(File(it, "gboard_rgb_config.json")) }
+            } catch (_: Throwable) {}
+            for (file in directFiles) {
+                try {
+                    if (file.exists() && file.canRead()) {
+                        val text = file.readText()
+                        if (text.isNotBlank()) {
+                            val settings = fromJson(text)
+                            if (settings != null) return settings
+                        }
+                    }
+                } catch (_: Throwable) {}
+            }
+        }
+
+        // 3. Fallback to standard config file paths
         for (path in CONFIG_FILE_PATHS) {
             try {
                 val file = File(path)
                 if (file.exists() && file.canRead()) {
                     val text = file.readText()
                     if (text.isNotBlank()) {
-                        val json = JSONObject(text)
-                        val id = json.optInt("effect_id", 0)
-                        val legacySpeed = json.optDouble("speed", 1.0).toFloat()
-                        val legacySize = json.optDouble("size", 1.0).toFloat()
-                        val waveSpeed = json.optDouble("wave_speed", legacySpeed.toDouble()).toFloat()
-                        val waveSize = json.optDouble("wave_size", legacySize.toDouble()).toFloat()
-                        val keyFlowSpeed = json.optDouble("key_flow_speed", legacySpeed.toDouble()).toFloat()
-                        val keyFlowSize = json.optDouble("key_flow_size", legacySize.toDouble()).toFloat()
-                        val ambient = json.optBoolean("ambient_rain", false)
-                        val useCustom = json.optBoolean("use_custom_colors", false)
-                        val colPrim = json.optString("color_primary", "#00FFF5")
-                        val colSec = json.optString("color_secondary", "#FF00AA")
-                        val turbo = json.optBoolean("turbo_dynamics", true)
-                        val glide = json.optBoolean("glide_trail", true)
-                        val haptic = json.optBoolean("haptic", true)
-                        val underglow = json.optBoolean("underglow", false)
-                        val visualEffect = json.optBoolean("visual_effect", true)
-                        val keyFlow = json.optBoolean("key_shape_flow", true)
-                        val borderOnly = json.optBoolean("key_border_only", true)
-                        return Settings(
-                            EffectType.fromId(id), waveSpeed, waveSize, waveSpeed, waveSize, keyFlowSpeed, keyFlowSize,
-                            ambient, useCustom, colPrim, colSec, turbo, glide, haptic, underglow, visualEffect, keyFlow, borderOnly
-                        )
+                        val settings = fromJson(text)
+                        if (settings != null) return settings
                     }
                 }
             } catch (e: Throwable) {
@@ -242,8 +378,8 @@ object ConfigManager {
             }
         }
 
-        // 3. Fallback defaults (Instant, safe, guaranteed to never hang or block Gboard)
-        return Settings()
+        // 4. Fallback defaults
+        return sanitize(Settings())
     }
 
     /**
@@ -254,7 +390,7 @@ object ConfigManager {
             try {
                 val settings = SettingsProvider.getSettings(context)
                 if (settings != null) {
-                    onLoaded(settings)
+                    onLoaded(sanitize(settings))
                 }
             } catch (ignored: Throwable) {}
         }.start()
